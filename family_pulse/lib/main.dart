@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  // Required before any async work in main
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase using the auto-generated config
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Android's native side (google-services.json) can auto-init the
+  // default app before Dart runs, so Firebase.apps.isEmpty can't be
+  // trusted here — catch the resulting duplicate-app error instead.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app') rethrow;
+  }
 
-  // ProviderScope wraps the whole app for Riverpod state management
   runApp(
     const ProviderScope(
       child: FamilyPulseApp(),
