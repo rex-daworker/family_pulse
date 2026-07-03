@@ -79,8 +79,8 @@ class EventService {
     }
 
     for (final doc in snapshot.docs) {
-      final data = doc.data()!;
-      final userId = data['user_id'] as String;
+      final data = doc.data() as Map<String, dynamic>;
+        final userId = data['user_id'] as String;
 
       if (memberIds.contains(userId)) {
         busyTimes[userId]!.add({
