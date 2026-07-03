@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDUE7w0H9NM1TmQr5OqB4Co6VkEzmUlKpo</string>
+	<key>GCM_SENDER_ID</key>
+	<string>172467535450</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.familypulse.familyPulse</string>
+	<key>PROJECT_ID</key>
+	<string>family-pulse-sznzoj</string>
+	<key>STORAGE_BUCKET</key>
+	<string>family-pulse-sznzoj.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:172467535450:ios:e1621bd4f1ec459d0b2263</string>
+</dict>
+</plist>
