@@ -34,11 +34,7 @@ class AuthService {
           .doc(familyId)
           .collection('users')
           .doc(credential.user!.uid)
-          .set({
-        'name': name,
-        'email': email,
-        'role': role,
-      });
+          .set({'name': name, 'email': email, 'role': role});
 
       return credential;
     } on FirebaseAuthException catch (e) {

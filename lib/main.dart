@@ -17,15 +17,12 @@ void main() async {
     if (e.code != 'duplicate-app') rethrow;
   }
 
-  runApp(
-    const ProviderScope(
-      child: FamilyPulseApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: FamilyPulseApp()));
 }
 
 // Normalizes a DateTime to the calendar day only, so events can be grouped by day.
-DateTime eventKeyFor(DateTime date) => DateTime(date.year, date.month, date.day);
+DateTime eventKeyFor(DateTime date) =>
+    DateTime(date.year, date.month, date.day);
 
 // Checks whether a specific day already has at least one event.
 bool hasEventsForDate(Map<DateTime, List<Event>> events, DateTime date) {
@@ -58,10 +55,10 @@ class FamilyCalendarPage extends StatefulWidget {
 }
 
 class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
- // Tracks the currently displayed month and selected day in the calendar.
+  // Tracks the currently displayed month and selected day in the calendar.
   late DateTime _currentMonth;
   late DateTime _selectedDate;
- // Stores events keyed by calendar day so they can be looked up quickly.
+  // Stores events keyed by calendar day so they can be looked up quickly.
   bool _showEmptyDays = false;
   late final Map<DateTime, List<Event>> _events;
 
@@ -80,7 +77,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     'December',
   ];
 
- // Fills the screen with a few example events when the page first opens.
+  // Fills the screen with a few example events when the page first opens.
   @override
   void initState() {
     super.initState();
@@ -112,18 +109,20 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     };
   }
 
- // Formats the current month title shown in the header.
+  // Formats the current month title shown in the header.
   String _monthLabel(DateTime month) {
     return '${_monthNames[month.month - 1]} ${month.year}';
   }
 
- // Builds the list of day cells displayed in the month grid, including leading and trailing days.
+  // Builds the list of day cells displayed in the month grid, including leading and trailing days.
   List<DateTime> _daysForMonth(DateTime month) {
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     final leadingDays = firstDayOfMonth.weekday % 7;
-    final totalCells =
-      (((leadingDays + daysInMonth + 6) ~/ 7) * 7).clamp(35, 42);
+    final totalCells = (((leadingDays + daysInMonth + 6) ~/ 7) * 7).clamp(
+      35,
+      42,
+    );
 
     return List<DateTime>.generate(totalCells, (index) {
       final dayOffset = index - leadingDays + 1;
@@ -131,25 +130,33 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     });
   }
 
- // Returns the events for the currently selected calendar day.
+  // Returns the events for the currently selected calendar day.
   List<Event> _eventsForSelectedDay() {
     final dayEvents = _events[eventKeyFor(_selectedDate)] ?? [];
     return dayEvents.toList()..sort((a, b) => a.date.compareTo(b.date));
   }
 
- // Updates the selected day when the user taps a calendar cell.
+  // Updates the selected day when the user taps a calendar cell.
   void _selectDay(DateTime day) {
     setState(() {
       _selectedDate = eventKeyFor(day);
     });
   }
 
- // Opens a dialog for creating or editing an event on the selected day.
+  // Opens a dialog for creating or editing an event on the selected day.
   Future<void> _showEventEditor({Event? event}) async {
     final titleController = TextEditingController(text: event?.title ?? '');
-    final descriptionController = TextEditingController(text: event?.description ?? '');
+    final descriptionController = TextEditingController(
+      text: event?.description ?? '',
+    );
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(
-      event?.date ?? DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 18),
+      event?.date ??
+          DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            18,
+          ),
     );
 
     await showDialog<void>(
@@ -212,7 +219,9 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                     );
 
                     setState(() {
-                      final oldKey = event?.date != null ? eventKeyFor(event!.date) : null;
+                      final oldKey = event?.date != null
+                          ? eventKeyFor(event!.date)
+                          : null;
                       final newKey = eventKeyFor(eventDate);
 
                       if (oldKey != null && oldKey != newKey) {
@@ -264,8 +273,12 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                 _showEmptyDays = !_showEmptyDays;
               });
             },
-            icon: Icon(_showEmptyDays ? Icons.visibility : Icons.visibility_off),
-            label: Text(_showEmptyDays ? 'Showing empty days' : 'Show empty days'),
+            icon: Icon(
+              _showEmptyDays ? Icons.visibility : Icons.visibility_off,
+            ),
+            label: Text(
+              _showEmptyDays ? 'Showing empty days' : 'Show empty days',
+            ),
           ),
         ],
       ),
@@ -278,7 +291,10 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
+                      _currentMonth = DateTime(
+                        _currentMonth.year,
+                        _currentMonth.month - 1,
+                      );
                     });
                   },
                   icon: const Icon(Icons.chevron_left),
@@ -293,7 +309,10 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
+                      _currentMonth = DateTime(
+                        _currentMonth.year,
+                        _currentMonth.month + 1,
+                      );
                     });
                   },
                   icon: const Icon(Icons.chevron_right),
@@ -308,7 +327,14 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                  .map((label) => Center(child: Text(label, style: Theme.of(context).textTheme.labelMedium)))
+                  .map(
+                    (label) => Center(
+                      child: Text(
+                        label,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
             const SizedBox(height: 4),
@@ -324,7 +350,8 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
               itemBuilder: (context, index) {
                 final day = _daysForMonth(_currentMonth)[index];
                 final isCurrentMonth = day.month == _currentMonth.month;
-                final isSelected = eventKeyFor(day).difference(_selectedDate).inDays == 0;
+                final isSelected =
+                    eventKeyFor(day).difference(_selectedDate).inDays == 0;
                 final hasEvent = hasEventsForDate(_events, day);
                 final showEmpty = _showEmptyDays && isCurrentMonth && !hasEvent;
 
@@ -336,8 +363,10 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                       color: isSelected
                           ? Theme.of(context).colorScheme.primaryContainer
                           : (hasEvent
-                              ? Colors.orange.shade100
-                              : (showEmpty ? Colors.green.shade50 : Colors.white)),
+                                ? Colors.orange.shade100
+                                : (showEmpty
+                                      ? Colors.green.shade50
+                                      : Colors.white)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
@@ -353,8 +382,12 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                           Text(
                             '${day.day}',
                             style: TextStyle(
-                              color: isCurrentMonth ? Colors.black : Colors.grey,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isCurrentMonth
+                                  ? Colors.black
+                                  : Colors.grey,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                           const Spacer(),
@@ -414,12 +447,19 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
-                          subtitle: Text(event.description.isEmpty ? 'No notes' : event.description),
+                          subtitle: Text(
+                            event.description.isEmpty
+                                ? 'No notes'
+                                : event.description,
+                          ),
                           trailing: IconButton(
                             icon: const Icon(Icons.edit_outlined),
                             onPressed: () => _showEventEditor(event: event),
                           ),
-                          leading: Icon(Icons.event_available, color: Theme.of(context).colorScheme.primary),
+                          leading: Icon(
+                            Icons.event_available,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       );
                     }),

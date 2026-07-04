@@ -23,14 +23,14 @@ class EventService {
         .doc(familyId)
         .collection('events')
         .add({
-      'title': title,
-      'category': category,
-      'start_time': Timestamp.fromDate(startTime),
-      'end_time': Timestamp.fromDate(endTime),
-      'description': description ?? '',
-      'user_id': _uid,       // auto-stamped from logged-in user
-      'user_name': userName, // denormalized for fast rendering
-    });
+          'title': title,
+          'category': category,
+          'start_time': Timestamp.fromDate(startTime),
+          'end_time': Timestamp.fromDate(endTime),
+          'description': description ?? '',
+          'user_id': _uid, // auto-stamped from logged-in user
+          'user_name': userName, // denormalized for fast rendering
+        });
   }
 
   // ─── READ ALL FAMILY EVENTS (real-time stream) ─────────────
@@ -68,7 +68,10 @@ class EventService {
         .collection('families')
         .doc(familyId)
         .collection('events')
-        .where('start_time', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+        .where(
+          'start_time',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart),
+        )
         .where('start_time', isLessThanOrEqualTo: Timestamp.fromDate(dayEnd))
         .get();
 
