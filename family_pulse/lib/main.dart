@@ -24,12 +24,15 @@ void main() async {
   );
 }
 
+// Normalizes a DateTime to the calendar day only, so events can be grouped by day.
 DateTime eventKeyFor(DateTime date) => DateTime(date.year, date.month, date.day);
 
+// Checks whether a specific day already has at least one event.
 bool hasEventsForDate(Map<DateTime, List<Event>> events, DateTime date) {
   return (events[eventKeyFor(date)] ?? []).isNotEmpty;
 }
 
+// Root widget that sets up the app theme and launches the calendar screen.
 class FamilyPulseApp extends StatelessWidget {
   const FamilyPulseApp({super.key});
 
@@ -55,8 +58,10 @@ class FamilyCalendarPage extends StatefulWidget {
 }
 
 class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
+ // Tracks the currently displayed month and selected day in the calendar.
   late DateTime _currentMonth;
   late DateTime _selectedDate;
+ // Stores events keyed by calendar day so they can be looked up quickly.
   bool _showEmptyDays = false;
   late final Map<DateTime, List<Event>> _events;
 
@@ -75,6 +80,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     'December',
   ];
 
+ // Fills the screen with a few example events when the page first opens.
   @override
   void initState() {
     super.initState();
@@ -106,15 +112,18 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     };
   }
 
+ // Formats the current month title shown in the header.
   String _monthLabel(DateTime month) {
     return '${_monthNames[month.month - 1]} ${month.year}';
   }
 
+ // Builds the list of day cells displayed in the month grid, including leading and trailing days.
   List<DateTime> _daysForMonth(DateTime month) {
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     final leadingDays = firstDayOfMonth.weekday % 7;
-    final totalCells = ((leadingDays + daysInMonth + 6) / 7).ceil() * 7;
+    final totalCells =
+      (((leadingDays + daysInMonth + 6) ~/ 7) * 7).clamp(35, 42);
 
     return List<DateTime>.generate(totalCells, (index) {
       final dayOffset = index - leadingDays + 1;
@@ -122,17 +131,20 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     });
   }
 
+ // Returns the events for the currently selected calendar day.
   List<Event> _eventsForSelectedDay() {
     final dayEvents = _events[eventKeyFor(_selectedDate)] ?? [];
     return dayEvents.toList()..sort((a, b) => a.date.compareTo(b.date));
   }
 
+ // Updates the selected day when the user taps a calendar cell.
   void _selectDay(DateTime day) {
     setState(() {
       _selectedDate = eventKeyFor(day);
     });
   }
 
+ // Opens a dialog for creating or editing an event on the selected day.
   Future<void> _showEventEditor({Event? event}) async {
     final titleController = TextEditingController(text: event?.title ?? '');
     final descriptionController = TextEditingController(text: event?.description ?? '');
@@ -426,6 +438,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
   }
 }
 
+// Data model for one family event on the calendar.
 class Event {
   Event({required this.title, required this.description, required this.date});
 
