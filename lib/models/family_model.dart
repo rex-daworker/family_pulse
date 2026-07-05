@@ -5,11 +5,7 @@ class FamilyModel {
   final String name;
   final DateTime createdAt;
 
-  FamilyModel({
-    required this.id,
-    required this.name,
-    required this.createdAt,
-  });
+  FamilyModel({required this.id, required this.name, required this.createdAt});
 
   /// Builds a FamilyModel from a Firestore document snapshot's data map.
   factory FamilyModel.fromMap(Map<String, dynamic> data, String id) {
@@ -24,9 +20,6 @@ class FamilyModel {
 
   /// Converts this object back into a map, ready to write to Firestore.
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'created_at': createdAt,
-    };
+    return {'name': name, 'created_at': createdAt};
   }
 }

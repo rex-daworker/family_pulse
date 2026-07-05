@@ -25,10 +25,6 @@ class UserModel {
 
   /// Converts this object back into a map, ready to write to Firestore.
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'email': email,
-      'role': role,
-    };
+    return {'name': name, 'email': email, 'role': role};
   }
 }
