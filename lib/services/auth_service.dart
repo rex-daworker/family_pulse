@@ -12,6 +12,9 @@ class AuthService {
   // Stream — listens for login/logout changes in real time
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  // Stream — listens for user state, token, or profile changes (used by AuthProvider)
+  Stream<User?> get userChanges => _auth.userChanges();
+
   // ─── SIGN UP ───────────────────────────────────────────────
   Future<UserCredential?> signUp({
     required String email,
