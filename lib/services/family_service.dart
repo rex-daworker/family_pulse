@@ -1,5 +1,3 @@
-
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FamilyService {
@@ -41,11 +39,7 @@ class FamilyService {
         .doc(familyId)
         .collection('users')
         .doc(userId)
-        .set({
-      'name': userName,
-      'role': role,
-      'email': userEmail,
-    });
+        .set({'name': userName, 'role': role, 'email': userEmail});
   }
 
   // 3. CRITICAL LOOKUP: Find which family a user belongs to by their User ID

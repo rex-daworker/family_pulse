@@ -24,12 +24,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         password: _passwordController.text.trim(),
       );
       // If successful, navigate to home (update route name as needed)
-      if (mounted) context.go('/'); 
+      if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -59,10 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 24),
             _isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _login,
-                    child: const Text('Login'),
-                  ),
+                : ElevatedButton(onPressed: _login, child: const Text('Login')),
             TextButton(
               onPressed: () => context.push('/register'),
               child: const Text('Don\'t have an account? Register here.'),
