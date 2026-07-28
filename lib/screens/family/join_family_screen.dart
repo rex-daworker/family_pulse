@@ -36,7 +36,9 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authServiceProvider).currentUser!;
-      await ref.read(familyServiceProvider).joinFamily(
+      await ref
+          .read(familyServiceProvider)
+          .joinFamily(
             familyId: familyId,
             userId: user.uid,
             userName: yourName,

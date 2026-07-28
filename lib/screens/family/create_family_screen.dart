@@ -7,8 +7,7 @@ class CreateFamilyScreen extends ConsumerStatefulWidget {
   const CreateFamilyScreen({super.key});
 
   @override
-  ConsumerState<CreateFamilyScreen> createState() =>
-      _CreateFamilyScreenState();
+  ConsumerState<CreateFamilyScreen> createState() => _CreateFamilyScreenState();
 }
 
 class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
@@ -36,7 +35,9 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authServiceProvider).currentUser!;
-      await ref.read(familyServiceProvider).createFamily(
+      await ref
+          .read(familyServiceProvider)
+          .createFamily(
             familyName: familyName,
             userId: user.uid,
             userName: yourName,

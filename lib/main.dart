@@ -85,7 +85,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(authService.userChanges),
     redirect: (context, state) async {
-      final loggingIn = state.matchedLocation == '/login' ||
+      final loggingIn =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       final user = authService.currentUser;
@@ -99,7 +100,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       final familyId = await familyService.findFamilyIdByUserId(user.uid);
-      final choosingFamily = state.matchedLocation == '/family-choice' ||
+      final choosingFamily =
+          state.matchedLocation == '/family-choice' ||
           state.matchedLocation == '/create-family' ||
           state.matchedLocation == '/join-family';
 
@@ -109,12 +111,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const FamilyCalendarPage()),
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const FamilyCalendarPage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-      GoRoute(path: '/family-choice', builder: (context, state) => const FamilyChoiceScreen()),
-      GoRoute(path: '/create-family', builder: (context, state) => const CreateFamilyScreen()),
-      GoRoute(path: '/join-family', builder: (context, state) => const JoinFamilyScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/family-choice',
+        builder: (context, state) => const FamilyChoiceScreen(),
+      ),
+      GoRoute(
+        path: '/create-family',
+        builder: (context, state) => const CreateFamilyScreen(),
+      ),
+      GoRoute(
+        path: '/join-family',
+        builder: (context, state) => const JoinFamilyScreen(),
+      ),
     ],
   );
 });
