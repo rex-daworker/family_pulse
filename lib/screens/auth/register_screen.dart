@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +14,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _familyIdController = TextEditingController(); // E.g., a shared family code
+  final _familyIdController =
+      TextEditingController(); // E.g., a shared family code
   String _selectedRole = 'parent'; // Default role based on Firestore structure
   bool _isLoading = false;
 
@@ -30,12 +30,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         role: _selectedRole,
         familyId: _familyIdController.text.trim(),
       );
-      if (mounted) context.go('/'); 
+      if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -76,7 +76,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(labelText: 'Role'),
               items: const [
                 DropdownMenuItem(value: 'parent', child: Text('Parent')),
