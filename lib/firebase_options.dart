@@ -1,4 +1,4 @@
-// File generated manually from Firebase Console credentials
+// File generated from Firebase Console
 // Project: family-pulse-sznzoj
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
@@ -16,9 +16,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return web;
+        return macos;
       case TargetPlatform.windows:
-        return web;
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux.',
@@ -54,5 +54,23 @@ class DefaultFirebaseOptions {
     projectId: 'family-pulse-sznzoj',
     storageBucket: 'family-pulse-sznzoj.firebasestorage.app',
     iosBundleId: 'com.familypulse.familyPulse',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCdguC33eGfgAZSjVqCGdYET2m6KwCHvUY',
+    appId: '1:172467535450:ios:eefdc074f5ca2a970b2263',
+    messagingSenderId: '172467535450',
+    projectId: 'family-pulse-sznzoj',
+    storageBucket: 'family-pulse-sznzoj.firebasestorage.app',
+    iosBundleId: 'com.familypulse.familyPulse',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyCdguC33eGfgAZSjVqCGdYET2m6KwCHvUY',
+    authDomain: 'family-pulse-sznzoj.firebaseapp.com',
+    projectId: 'family-pulse-sznzoj',
+    storageBucket: 'family-pulse-sznzoj.firebasestorage.app',
+    messagingSenderId: '172467535450',
+    appId: '1:172467535450:web:eefdc074f5ca2a970b2263',
   );
 }
