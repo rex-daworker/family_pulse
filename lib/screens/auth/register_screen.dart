@@ -214,18 +214,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         _selectedRole = value ?? 'parent';
                       });
                     },
-                    child: Row(
+                    child: const Row(
                       children: [
                         Expanded(
                           child: RadioListTile<String>(
-                            title: const Text('Parent'),
+                            title: Text('Parent'),
                             value: 'parent',
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
                         Expanded(
                           child: RadioListTile<String>(
-                            title: const Text('Child'),
+                            title: Text('Child'),
                             value: 'child',
                             contentPadding: EdgeInsets.zero,
                           ),
