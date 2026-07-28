@@ -207,35 +207,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: RadioListTile<String>(
-                          title: const Text('Parent'),
-                          value: 'parent',
-                          groupValue: _selectedRole,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRole = value!;
-                            });
-                          },
-                          contentPadding: EdgeInsets.zero,
+                  RadioGroup<String>(
+                    groupValue: _selectedRole,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRole = value ?? 'parent';
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: const Text('Parent'),
+                            value: 'parent',
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: RadioListTile<String>(
-                          title: const Text('Child'),
-                          value: 'child',
-                          groupValue: _selectedRole,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRole = value!;
-                            });
-                          },
-                          contentPadding: EdgeInsets.zero,
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: const Text('Child'),
+                            value: 'child',
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 
