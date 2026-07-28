@@ -1,7 +1,17 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import 'firebase_options.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/family/create_family_screen.dart';
+import 'screens/family/family_choice_screen.dart';
+import 'screens/family/join_family_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,23 +39,85 @@ bool hasEventsForDate(Map<DateTime, List<Event>> events, DateTime date) {
   return (events[eventKeyFor(date)] ?? []).isNotEmpty;
 }
 
-// Root widget that sets up the app theme and launches the calendar screen.
-class FamilyPulseApp extends StatelessWidget {
+// Root widget that sets up the app theme and launches the router.
+class FamilyPulseApp extends ConsumerWidget {
   const FamilyPulseApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
       title: 'FamilyPulse',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      home: const FamilyCalendarPage(),
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }
+
+// Bridges a Firebase auth stream into something GoRouter can listen to,
+// so the router re-evaluates redirects whenever login state changes.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+// Builds the app's router. Redirect logic enforces:
+// not logged in -> /login; logged in but no family -> /family-choice;
+// otherwise -> home.
+final routerProvider = Provider<GoRouter>((ref) {
+  final authService = ref.watch(authServiceProvider);
+  final familyService = ref.watch(familyServiceProvider);
+
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: GoRouterRefreshStream(authService.userChanges),
+    redirect: (context, state) async {
+      final loggingIn = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+
+      final user = authService.currentUser;
+      final isLoggedIn = user != null;
+
+      if (!isLoggedIn) {
+        return loggingIn ? null : '/login';
+      }
+      if (loggingIn) {
+        return '/';
+      }
+
+      final familyId = await familyService.findFamilyIdByUserId(user.uid);
+      final choosingFamily = state.matchedLocation == '/family-choice' ||
+          state.matchedLocation == '/create-family' ||
+          state.matchedLocation == '/join-family';
+
+      if (familyId == null && !choosingFamily) return '/family-choice';
+      if (familyId != null && choosingFamily) return '/';
+
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/', builder: (context, state) => const FamilyCalendarPage()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+      GoRoute(path: '/family-choice', builder: (context, state) => const FamilyChoiceScreen()),
+      GoRoute(path: '/create-family', builder: (context, state) => const CreateFamilyScreen()),
+      GoRoute(path: '/join-family', builder: (context, state) => const JoinFamilyScreen()),
+    ],
+  );
+});
 
 class FamilyCalendarPage extends StatefulWidget {
   const FamilyCalendarPage({super.key});
