@@ -1,71 +1,83 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_model.dart';
 
 class AuthService {
+  // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Stream of auth state changes — used by authStateProvider
+  // Get current logged-in user
+  User? get currentUser => _auth.currentUser;
+
+  // Stream — listens for login/logout changes in real time
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Sign up — called by AuthStateNotifier.signUp()
-  Future<void> signUp({
-    required String name,
+  // ─── SIGN UP ───────────────────────────────────────────────
+  Future<UserCredential?> signUp({
     required String email,
     required String password,
-    required String role,
+    required String name,
+    required String role, // 'parent' or 'child'
+    required String familyId,
   }) async {
     try {
-      // Create user in Firebase Auth
-      final UserCredential credential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+      // 1. Create the Firebase Auth account
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-      final String uid = credential.user!.uid;
-
-      // Save user data to Firestore
-      await _firestore.collection('users').doc(uid).set({
-        'name': name,
-        'email': email,
-        'role': role,
-        'created_at': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      rethrow; // Let the provider handle the error
-    }
-  }
-
-  // Sign in — called by AuthStateNotifier.signIn()
-  Future<void> signIn({required String email, required String password}) async {
-    try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-    } catch (e) {
-      rethrow; // Let the provider handle the error
-    }
-  }
-
-  // Sign out — called by AuthStateNotifier.signOut()
-  Future<void> signOut() async {
-    try {
-      await _auth.signOut();
-    } catch (e) {
-      rethrow; // Let the provider handle the error
-    }
-  }
-
-  // Get user data from Firestore — used by userDataProvider
-  Future<UserModel?> getUserData(String uid) async {
-    try {
-      final DocumentSnapshot doc = await _firestore
+      // 2. Save the user profile to Firestore
+      // Document ID = Firebase Auth UID (this is how security rules identify them)
+      await _firestore
+          .collection('families')
+          .doc(familyId)
           .collection('users')
-          .doc(uid)
-          .get();
+          .doc(credential.user!.uid)
+          .set({'name': name, 'email': email, 'role': role});
 
-      if (!doc.exists) return null;
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
 
-      return UserModel.fromMap(doc.data() as Map<String, dynamic>, uid);
-    } catch (e) {
-      return null; // Return null if user data doesn't exist
+  // ─── SIGN IN ───────────────────────────────────────────────
+  Future<UserCredential?> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
+  // ─── SIGN OUT ──────────────────────────────────────────────
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
+
+  // ─── ERROR HANDLER ─────────────────────────────────────────
+  // Converts Firebase error codes into readable messages
+  String _handleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      default:
+        return 'Something went wrong. Please try again.';
     }
   }
 }
