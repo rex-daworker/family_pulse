@@ -99,7 +99,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
-      final familyId = await familyService.findFamilyIdByUserId(user.uid);
+      final familyId = await familyService
+          .findFamilyIdByUserId(user.uid)
+          .catchError((e) {
+            // Don't let a Firestore hiccup silently strand the user mid-login —
+            // treat it as "no family found" and let them retry from family-choice.
+            debugPrint('findFamilyIdByUserId failed: $e');
+            return null;
+          });
       final choosingFamily =
           state.matchedLocation == '/family-choice' ||
           state.matchedLocation == '/create-family' ||
