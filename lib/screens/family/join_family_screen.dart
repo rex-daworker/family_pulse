@@ -45,6 +45,8 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             userEmail: user.email ?? '',
             role: _selectedRole,
           );
+      ref.invalidate(currentFamilyIdProvider);
+      await ref.read(currentFamilyIdProvider.future);
       if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {

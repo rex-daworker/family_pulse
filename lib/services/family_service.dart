@@ -33,6 +33,13 @@ class FamilyService {
     required String userEmail,
     required String role,
   }) async {
+    final familyDoc =
+        await _firestore.collection('families').doc(familyId).get();
+
+    if (!familyDoc.exists) {
+      throw Exception('Family not found. Check the code and try again.');
+    }
+
     await _firestore
         .collection('families')
         .doc(familyId)
