@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Collection group rule — allows findFamilyIdByUserId() to search across
+    // every nested users subcollection.
+    //
+    // This MUST match on the `user_id` FIELD, not the {userId} document-ID
+    // wildcard. The query filters with .where('user_id', isEqualTo: uid), and
+    // Firestore can only approve a collection group query if the rule
+    // constrains the same thing the query filters on. Matching the doc-ID
+    // wildcard instead causes a blanket PERMISSION_DENIED.
+    //
+    // Still scoped to the caller's own membership doc, so no data leak.
+    match /{path=**}/users/{userId} {
+      allow read: if request.auth != null &&
+        resource.data.user_id == request.auth.uid;
+    }
+
+    match /families/{familyId} {
+      // Any signed-in user can create a new family
+      allow create: if request.auth != null;
+
+      // Only members of this family can read or update it
+      allow read, update: if request.auth != null &&
+        exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+
+      match /users/{userId} {
+        // No exists() check on the parent family here — it breaks family
+        // creation, because the parent doc isn't visible to the rules engine
+        // during the same write sequence.
+        allow create: if request.auth != null && request.auth.uid == userId;
+
+        allow read, update: if request.auth != null &&
+          exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+      }
+
+      match /events/{eventId} {
+        // Any family member can read and write events
+        allow read, write: if request.auth != null &&
+          exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+      }
+    }
+  }
+}

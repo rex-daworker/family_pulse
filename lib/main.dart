@@ -109,8 +109,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/join-family';
 
       // Still loading or errored — don't redirect, let the screen render.
-      if (!familyAsync.hasValue) return null;
-
+      // Errored — send to family-choice rather than silently stranding on home.
+      if (familyAsync.hasError) {
+        debugPrint('family lookup failed: ${familyAsync.error}');
+        return choosingFamily ? null : '/family-choice';
+      }
+      if (familyAsync.isLoading) return null;
       final familyId = familyAsync.value;
       if (familyId == null && !choosingFamily) return '/family-choice';
       if (familyId != null && choosingFamily) return '/';
