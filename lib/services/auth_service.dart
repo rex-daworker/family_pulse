@@ -1,10 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Get current logged-in user
   User? get currentUser => _auth.currentUser;
@@ -16,28 +14,21 @@ class AuthService {
   Stream<User?> get userChanges => _auth.userChanges();
 
   // ─── SIGN UP ───────────────────────────────────────────────
+  // Only creates the auth account. Family membership is handled
+  // separately by FamilyService once the user creates or joins one.
   Future<UserCredential?> signUp({
     required String email,
     required String password,
     required String name,
-    required String role, // 'parent' or 'child'
-    required String familyId,
   }) async {
     try {
-      // 1. Create the Firebase Auth account
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // 2. Save the user profile to Firestore
-      // Document ID = Firebase Auth UID (this is how security rules identify them)
-      await _firestore
-          .collection('families')
-          .doc(familyId)
-          .collection('users')
-          .doc(credential.user!.uid)
-          .set({'name': name, 'email': email, 'role': role});
+      // Store the display name so family screens can prefill it
+      await credential.user?.updateDisplayName(name);
 
       return credential;
     } on FirebaseAuthException catch (e) {

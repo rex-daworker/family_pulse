@@ -67,6 +67,8 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
   late final StreamSubscription<dynamic> _subscription;
 
+  void refresh() => notifyListeners();
+
   @override
   void dispose() {
     _subscription.cancel();
@@ -79,42 +81,43 @@ class GoRouterRefreshStream extends ChangeNotifier {
 // otherwise -> home.
 final routerProvider = Provider<GoRouter>((ref) {
   final authService = ref.watch(authServiceProvider);
-  final familyService = ref.watch(familyServiceProvider);
+
+  // Also refresh when the family lookup resolves, so a redirect deferred
+  // while currentFamilyIdProvider was still loading gets re-evaluated
+  // once it has a value instead of leaving the user on the wrong screen.
+  final refreshStream = GoRouterRefreshStream(authService.userChanges);
+  ref.onDispose(refreshStream.dispose);
+  ref.listen(currentFamilyIdProvider, (_, _) => refreshStream.refresh());
 
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(authService.userChanges),
-    redirect: (context, state) async {
+    refreshListenable: refreshStream,
+    redirect: (context, state) {
       final loggingIn =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       final user = authService.currentUser;
-      final isLoggedIn = user != null;
+      if (user == null) return loggingIn ? null : '/login';
+      if (loggingIn) return '/';
 
-      if (!isLoggedIn) {
-        return loggingIn ? null : '/login';
-      }
-      if (loggingIn) {
-        return '/';
-      }
-
-      final familyId = await familyService
-          .findFamilyIdByUserId(user.uid)
-          .catchError((e) {
-            // Don't let a Firestore hiccup silently strand the user mid-login —
-            // treat it as "no family found" and let them retry from family-choice.
-            debugPrint('findFamilyIdByUserId failed: $e');
-            return null;
-          });
+      // Read the already-resolved family state — no awaiting here.
+      final familyAsync = ref.read(currentFamilyIdProvider);
       final choosingFamily =
           state.matchedLocation == '/family-choice' ||
           state.matchedLocation == '/create-family' ||
           state.matchedLocation == '/join-family';
 
+      // Still loading or errored — don't redirect, let the screen render.
+      // Errored — send to family-choice rather than silently stranding on home.
+      if (familyAsync.hasError) {
+        debugPrint('family lookup failed: ${familyAsync.error}');
+        return choosingFamily ? null : '/family-choice';
+      }
+      if (familyAsync.isLoading) return null;
+      final familyId = familyAsync.value;
       if (familyId == null && !choosingFamily) return '/family-choice';
       if (familyId != null && choosingFamily) return '/';
-
       return null;
     },
     routes: [

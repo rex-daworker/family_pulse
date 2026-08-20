@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -35,7 +36,7 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
     setState(() => _isLoading = true);
     try {
       final user = ref.read(authServiceProvider).currentUser!;
-      await ref
+      final familyId = await ref
           .read(familyServiceProvider)
           .createFamily(
             familyName: familyName,
@@ -43,6 +44,31 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             userName: yourName,
             userEmail: user.email ?? '',
           );
+
+      ref.invalidate(currentFamilyIdProvider);
+      await ref.read(currentFamilyIdProvider.future);
+
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Family created'),
+            content: SelectableText(
+              'Share this code so others can join:\n\n$familyId',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: familyId));
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Copy code'),
+              ),
+            ],
+          ),
+        );
+      }
+
       if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {

@@ -14,12 +14,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _familyIdController =
-      TextEditingController(); // E.g., a shared family code
-  String _selectedRole = 'parent'; // Default role based on Firestore structure
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _register() async {
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+    if (_passwordController.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
@@ -27,8 +49,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         name: _nameController.text.trim(),
-        role: _selectedRole,
-        familyId: _familyIdController.text.trim(),
       );
       if (mounted) context.go('/');
     } catch (e) {
@@ -65,26 +85,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               controller: _passwordController,
               decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _familyIdController,
-              decoration: const InputDecoration(
-                labelText: 'Family ID (Code)',
-                helperText: 'Enter a new name to create, or a code to join.',
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedRole,
-              decoration: const InputDecoration(labelText: 'Role'),
-              items: const [
-                DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                DropdownMenuItem(value: 'child', child: Text('Child')),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedRole = value);
-              },
             ),
             const SizedBox(height: 24),
             _isLoading
