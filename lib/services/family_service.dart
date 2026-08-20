@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FamilyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
- // 1. Create a brand new family and add the creator as the first parent member
+  // 1. Create a brand new family and add the creator as the first parent member
   Future<String> createFamily({
     required String familyName,
     required String userId,
@@ -33,8 +33,10 @@ class FamilyService {
     required String userEmail,
     required String role,
   }) async {
-    final familyDoc =
-        await _firestore.collection('families').doc(familyId).get();
+    final familyDoc = await _firestore
+        .collection('families')
+        .doc(familyId)
+        .get();
 
     if (!familyDoc.exists) {
       throw Exception('Family not found. Check the code and try again.');
