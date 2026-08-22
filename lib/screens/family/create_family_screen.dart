@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../providers/auth_provider.dart';
 
 class CreateFamilyScreen extends ConsumerStatefulWidget {
@@ -14,6 +15,7 @@ class CreateFamilyScreen extends ConsumerStatefulWidget {
 class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
   final _familyNameController = TextEditingController();
   final _yourNameController = TextEditingController();
+
   bool _isLoading = false;
 
   @override
@@ -25,7 +27,9 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
 
   Future<void> _createFamily() async {
     final familyName = _familyNameController.text.trim();
+
     final yourName = _yourNameController.text.trim();
+
     if (familyName.isEmpty || yourName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in both fields.')),
@@ -34,8 +38,14 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
     }
 
     setState(() => _isLoading = true);
+
     try {
-      final user = ref.read(authServiceProvider).currentUser!;
+      final user = ref.read(authServiceProvider).currentUser;
+
+      if (user == null) {
+        throw Exception('You must be signed in to create a family.');
+      }
+
       final familyId = await ref
           .read(familyServiceProvider)
           .createFamily(
@@ -45,31 +55,60 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             userEmail: user.email ?? '',
           );
 
+      // Refresh the family lookup.
       ref.invalidate(currentFamilyIdProvider);
+
       await ref.read(currentFamilyIdProvider.future);
 
-      if (mounted) {
-        await showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
             title: const Text('Family created'),
-            content: SelectableText(
-              'Share this code so others can join:\n\n$familyId',
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Share this code with family members so they can join:',
+                ),
+                const SizedBox(height: 16),
+                SelectableText(
+                  familyId,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             actions: [
-              TextButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: familyId));
-                  Navigator.of(context).pop();
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: familyId));
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Family code copied!')),
+                    );
+                  }
                 },
-                child: const Text('Copy code'),
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy code'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Continue'),
               ),
             ],
-          ),
-        );
-      }
+          );
+        },
+      );
 
-      if (mounted) context.go('/');
+      if (mounted) {
+        context.go('/family');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -77,7 +116,9 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -86,7 +127,7 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Create a family')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
@@ -101,9 +142,12 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             const SizedBox(height: 24),
             _isLoading
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _createFamily,
-                    child: const Text('Create family'),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _createFamily,
+                      child: const Text('Create family'),
+                    ),
                   ),
           ],
         ),
