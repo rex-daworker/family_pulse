@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'firebase_options.dart';
+import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
+import 'providers/event_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/family/create_family_screen.dart';
@@ -35,7 +38,7 @@ DateTime eventKeyFor(DateTime date) =>
     DateTime(date.year, date.month, date.day);
 
 // Checks whether a specific day already has at least one event.
-bool hasEventsForDate(Map<DateTime, List<Event>> events, DateTime date) {
+bool hasEventsForDate(Map<DateTime, List<EventModel>> events, DateTime date) {
   return (events[eventKeyFor(date)] ?? []).isNotEmpty;
 }
 
@@ -161,7 +164,10 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
   bool _showEmptyDays = false;
 
-  late final Map<DateTime, List<Event>> _events;
+  // Populated at the top of build() from the live familyEventsProvider
+  // stream — see _groupEventsByDay(). Starts empty so the first frame
+  // (before the stream has emitted) has something safe to read.
+  Map<DateTime, List<EventModel>> _events = {};
 
   final List<String> _monthNames = <String>[
     'January',
@@ -191,33 +197,25 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     _currentMonth = DateTime(now.year, now.month);
 
     _selectedDate = eventKeyFor(now);
+  }
 
-    // Example events.
-    _events = {
-      eventKeyFor(DateTime(now.year, now.month, 3)): [
-        Event(
-          title: 'Family dinner',
-          description: 'Pizza night',
-          date: DateTime(now.year, now.month, 3, 18),
-        ),
-      ],
+  // ---------------------------------------------------------------------------
+  // GROUP LIVE EVENTS BY DAY
+  // ---------------------------------------------------------------------------
 
-      eventKeyFor(DateTime(now.year, now.month, 7)): [
-        Event(
-          title: 'School pickup',
-          description: 'Meet at 3:30',
-          date: DateTime(now.year, now.month, 7, 15, 30),
-        ),
-      ],
+  Map<DateTime, List<EventModel>> _groupEventsByDay(List<EventModel> events) {
+    final Map<DateTime, List<EventModel>> grouped = {};
 
-      eventKeyFor(DateTime(now.year, now.month, 12)): [
-        Event(
-          title: 'Weekend fun',
-          description: 'Park and picnic',
-          date: DateTime(now.year, now.month, 12, 10),
-        ),
-      ],
-    };
+    for (final event in events) {
+      final key = eventKeyFor(event.date);
+      grouped.putIfAbsent(key, () => []).add(event);
+    }
+
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.date.compareTo(b.date));
+    }
+
+    return grouped;
   }
 
   // ---------------------------------------------------------------------------
@@ -278,7 +276,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   // SELECTED DAY EVENTS
   // ---------------------------------------------------------------------------
 
-  List<Event> _eventsForSelectedDay() {
+  List<EventModel> _eventsForSelectedDay() {
     final dayEvents = _events[eventKeyFor(_selectedDate)] ?? [];
 
     return dayEvents.toList()..sort((a, b) => a.date.compareTo(b.date));
@@ -298,7 +296,55 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   // EVENT EDITOR
   // ---------------------------------------------------------------------------
 
-  Future<void> _showEventEditor({Event? event}) async {
+  // Current user's display name, denormalized onto every event we write so
+  // the UI can render "who added this" without a second lookup.
+  String get _currentUserName {
+    final user = ref.read(authStateProvider).value;
+    return user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!
+        : (user?.email ?? 'Family member');
+  }
+
+  Future<void> _deleteEvent(EventModel event) async {
+    final familyId = ref.read(currentFamilyIdProvider).value;
+    if (familyId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete event?'),
+          content: Text('"${event.title}" will be removed for everyone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref
+          .read(eventServiceProvider)
+          .deleteEvent(familyId: familyId, eventId: event.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not delete event: $e')));
+      }
+    }
+  }
+
+  Future<void> _showEventEditor({EventModel? event}) async {
     final titleController = TextEditingController(text: event?.title ?? '');
 
     final descriptionController = TextEditingController(
@@ -374,7 +420,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                 ),
 
                 FilledButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final title = titleController.text.trim();
 
                     if (title.isEmpty) {
@@ -389,49 +435,69 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                       selectedTime.minute,
                     );
 
-                    setState(() {
-                      // -------------------------------------------------------
-                      // FIX FOR THE PREVIOUS NULLABLE EVENT ERROR
-                      // -------------------------------------------------------
+                    final familyId = ref.read(currentFamilyIdProvider).value;
+                    if (familyId == null) {
+                      Navigator.of(dialogContext).pop();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'No family found yet — try again in a moment.',
+                            ),
+                          ),
+                        );
+                      }
+                      return;
+                    }
 
-                      final DateTime? oldKey = event != null
-                          ? eventKeyFor(event.date)
-                          : null;
+                    final description = descriptionController.text.trim();
+                    final endTime = eventDate.add(const Duration(hours: 1));
 
-                      final newKey = eventKeyFor(eventDate);
-
-                      // Remove event from its old day when
-                      // editing and changing the date.
-                      if (oldKey != null && oldKey != newKey) {
-                        final oldList = (_events[oldKey] ?? [])
-                            .where((existing) => existing != event)
-                            .toList();
-
-                        _events[oldKey] = oldList;
+                    try {
+                      if (event == null) {
+                        await ref
+                            .read(eventServiceProvider)
+                            .createEvent(
+                              familyId: familyId,
+                              title: title,
+                              category: 'other',
+                              startTime: eventDate,
+                              endTime: endTime,
+                              description: description,
+                              userName: _currentUserName,
+                            );
+                      } else {
+                        await ref
+                            .read(eventServiceProvider)
+                            .updateEvent(
+                              familyId: familyId,
+                              eventId: event.id,
+                              updates: {
+                                'title': title,
+                                'description': description,
+                                'date': Timestamp.fromDate(eventDate),
+                                'start_time': Timestamp.fromDate(eventDate),
+                                'end_time': Timestamp.fromDate(endTime),
+                              },
+                            );
                       }
 
-                      // Remove the old version of the event.
-                      final list = (_events[newKey] ?? [])
-                          .where((existing) => existing != event)
-                          .toList();
+                      if (mounted) {
+                        setState(() {
+                          _selectedDate = eventKeyFor(eventDate);
+                        });
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Could not save event: $e')),
+                        );
+                      }
+                    }
 
-                      // Add the new version.
-                      list.add(
-                        Event(
-                          title: title,
-                          description: descriptionController.text.trim(),
-                          date: eventDate,
-                        ),
-                      );
-
-                      list.sort((a, b) => a.date.compareTo(b.date));
-
-                      _events[newKey] = list;
-
-                      _selectedDate = newKey;
-                    });
-
-                    Navigator.of(dialogContext).pop();
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
                   },
                   child: const Text('Save'),
                 ),
@@ -452,6 +518,27 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final eventsAsync = ref.watch(familyEventsProvider);
+
+    return eventsAsync.when(
+      data: (events) {
+        _events = _groupEventsByDay(events);
+        return _buildCalendarScaffold(context);
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stackTrace) => Scaffold(
+        appBar: AppBar(title: const Text('Family Calendar')),
+        body: Center(child: Text('Could not load events: $error')),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // MAIN SCAFFOLD (rendered once family events have loaded)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildCalendarScaffold(BuildContext context) {
     final dayEvents = _eventsForSelectedDay();
 
     return Scaffold(
@@ -716,11 +803,24 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                                 : event.description,
                           ),
 
-                          trailing: IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () {
-                              _showEventEditor(event: event);
-                            },
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Edit event',
+                                onPressed: () {
+                                  _showEventEditor(event: event);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: 'Delete event',
+                                onPressed: () {
+                                  _deleteEvent(event);
+                                },
+                              ),
+                            ],
                           ),
 
                           leading: Icon(
@@ -751,14 +851,5 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   }
 }
 
-// -----------------------------------------------------------------------------
-// EVENT MODEL
-// -----------------------------------------------------------------------------
-
-class Event {
-  Event({required this.title, required this.description, required this.date});
-
-  final String title;
-  final String description;
-  final DateTime date;
-}
+// Event data now lives in lib/models/event_model.dart (EventModel), backed
+// live by Firestore via lib/services/event_service.dart + familyEventsProvider.
