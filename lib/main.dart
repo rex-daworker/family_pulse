@@ -146,19 +146,21 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class FamilyCalendarPage extends StatefulWidget {
+class FamilyCalendarPage extends ConsumerStatefulWidget {
   const FamilyCalendarPage({super.key});
 
   @override
-  State<FamilyCalendarPage> createState() => _FamilyCalendarPageState();
+  ConsumerState<FamilyCalendarPage> createState() {
+    return _FamilyCalendarPageState();
+  }
 }
 
-class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
-  // Tracks the currently displayed month and selected day in the calendar.
+class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   late DateTime _currentMonth;
   late DateTime _selectedDate;
-  // Stores events keyed by calendar day so they can be looked up quickly.
+
   bool _showEmptyDays = false;
+
   late final Map<DateTime, List<Event>> _events;
 
   final List<String> _monthNames = <String>[
@@ -176,13 +178,21 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     'December',
   ];
 
-  // Fills the screen with a few example events when the page first opens.
+  // ---------------------------------------------------------------------------
+  // INIT
+  // ---------------------------------------------------------------------------
+
   @override
   void initState() {
     super.initState();
+
     final now = DateTime.now();
+
     _currentMonth = DateTime(now.year, now.month);
+
     _selectedDate = eventKeyFor(now);
+
+    // Example events.
     _events = {
       eventKeyFor(DateTime(now.year, now.month, 3)): [
         Event(
@@ -191,6 +201,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
           date: DateTime(now.year, now.month, 3, 18),
         ),
       ],
+
       eventKeyFor(DateTime(now.year, now.month, 7)): [
         Event(
           title: 'School pickup',
@@ -198,6 +209,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
           date: DateTime(now.year, now.month, 7, 15, 30),
         ),
       ],
+
       eventKeyFor(DateTime(now.year, now.month, 12)): [
         Event(
           title: 'Weekend fun',
@@ -208,16 +220,48 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     };
   }
 
-  // Formats the current month title shown in the header.
+  // ---------------------------------------------------------------------------
+  // LOGOUT
+  // ---------------------------------------------------------------------------
+
+  Future<void> _signOut() async {
+    try {
+      // Use AuthService directly.
+      // This avoids the ref/authStateNotifierProvider problem.
+      await ref.read(authServiceProvider).signOut();
+
+      // Firebase auth state changes will also make GoRouter redirect.
+      if (mounted) {
+        context.go('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not sign out: $e')));
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // MONTH LABEL
+  // ---------------------------------------------------------------------------
+
   String _monthLabel(DateTime month) {
     return '${_monthNames[month.month - 1]} ${month.year}';
   }
 
-  // Builds the list of day cells displayed in the month grid, including leading and trailing days.
+  // ---------------------------------------------------------------------------
+  // DAYS FOR MONTH
+  // ---------------------------------------------------------------------------
+
   List<DateTime> _daysForMonth(DateTime month) {
     final firstDayOfMonth = DateTime(month.year, month.month, 1);
+
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+
     final leadingDays = firstDayOfMonth.weekday % 7;
+
     final totalCells = (((leadingDays + daysInMonth + 6) ~/ 7) * 7).clamp(
       35,
       42,
@@ -225,29 +269,42 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
 
     return List<DateTime>.generate(totalCells, (index) {
       final dayOffset = index - leadingDays + 1;
+
       return DateTime(month.year, month.month, dayOffset);
     });
   }
 
-  // Returns the events for the currently selected calendar day.
+  // ---------------------------------------------------------------------------
+  // SELECTED DAY EVENTS
+  // ---------------------------------------------------------------------------
+
   List<Event> _eventsForSelectedDay() {
     final dayEvents = _events[eventKeyFor(_selectedDate)] ?? [];
+
     return dayEvents.toList()..sort((a, b) => a.date.compareTo(b.date));
   }
 
-  // Updates the selected day when the user taps a calendar cell.
+  // ---------------------------------------------------------------------------
+  // SELECT DAY
+  // ---------------------------------------------------------------------------
+
   void _selectDay(DateTime day) {
     setState(() {
       _selectedDate = eventKeyFor(day);
     });
   }
 
-  // Opens a dialog for creating or editing an event on the selected day.
+  // ---------------------------------------------------------------------------
+  // EVENT EDITOR
+  // ---------------------------------------------------------------------------
+
   Future<void> _showEventEditor({Event? event}) async {
     final titleController = TextEditingController(text: event?.title ?? '');
+
     final descriptionController = TextEditingController(
       text: event?.description ?? '',
     );
+
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(
       event?.date ??
           DateTime(
@@ -260,11 +317,12 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: Text(event == null ? 'Add event' : 'Edit event'),
+
               content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
@@ -274,37 +332,51 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                       controller: titleController,
                       decoration: const InputDecoration(labelText: 'Title'),
                     ),
+
                     const SizedBox(height: 12),
+
                     TextField(
                       controller: descriptionController,
                       decoration: const InputDecoration(labelText: 'Notes'),
                       maxLines: 3,
                     ),
+
                     const SizedBox(height: 12),
+
                     OutlinedButton.icon(
                       onPressed: () async {
                         final time = await showTimePicker(
-                          context: context,
+                          context: dialogContext,
                           initialTime: selectedTime,
                         );
+
                         if (time != null) {
-                          setDialogState(() => selectedTime = time);
+                          setDialogState(() {
+                            selectedTime = time;
+                          });
                         }
                       },
                       icon: const Icon(Icons.access_time),
-                      label: Text('Time: ${selectedTime.format(context)}'),
+                      label: Text(
+                        'Time: ${selectedTime.format(dialogContext)}',
+                      ),
                     ),
                   ],
                 ),
               ),
+
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
                   child: const Text('Cancel'),
                 ),
+
                 FilledButton(
                   onPressed: () {
                     final title = titleController.text.trim();
+
                     if (title.isEmpty) {
                       return;
                     }
@@ -318,21 +390,32 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                     );
 
                     setState(() {
-                      final oldKey = event?.date != null
-                          ? eventKeyFor(event!.date)
+                      // -------------------------------------------------------
+                      // FIX FOR THE PREVIOUS NULLABLE EVENT ERROR
+                      // -------------------------------------------------------
+
+                      final DateTime? oldKey = event != null
+                          ? eventKeyFor(event.date)
                           : null;
+
                       final newKey = eventKeyFor(eventDate);
 
+                      // Remove event from its old day when
+                      // editing and changing the date.
                       if (oldKey != null && oldKey != newKey) {
                         final oldList = (_events[oldKey] ?? [])
                             .where((existing) => existing != event)
                             .toList();
+
                         _events[oldKey] = oldList;
                       }
 
+                      // Remove the old version of the event.
                       final list = (_events[newKey] ?? [])
                           .where((existing) => existing != event)
                           .toList();
+
+                      // Add the new version.
                       list.add(
                         Event(
                           title: title,
@@ -340,12 +423,15 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                           date: eventDate,
                         ),
                       );
+
                       list.sort((a, b) => a.date.compareTo(b.date));
+
                       _events[newKey] = list;
+
                       _selectedDate = newKey;
                     });
 
-                    Navigator.of(context).pop();
+                    Navigator.of(dialogContext).pop();
                   },
                   child: const Text('Save'),
                 ),
@@ -355,7 +441,14 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
         );
       },
     );
+
+    titleController.dispose();
+    descriptionController.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // BUILD
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -364,9 +457,12 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Family Calendar'),
+
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+
         actions: [
-          FilledButton.icon(
+          // Show/hide empty days.
+          IconButton(
             onPressed: () {
               setState(() {
                 _showEmptyDays = !_showEmptyDays;
@@ -375,16 +471,34 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
             icon: Icon(
               _showEmptyDays ? Icons.visibility : Icons.visibility_off,
             ),
-            label: Text(
-              _showEmptyDays ? 'Showing empty days' : 'Show empty days',
-            ),
+            tooltip: _showEmptyDays ? 'Hide empty days' : 'Show empty days',
+          ),
+
+          // Family screen.
+          IconButton(
+            onPressed: () {
+              context.push('/family');
+            },
+            icon: const Icon(Icons.family_restroom),
+            tooltip: 'My family',
+          ),
+
+          // Logout.
+          IconButton(
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
+            // -----------------------------------------------------------------
+            // MONTH NAVIGATION
+            // -----------------------------------------------------------------
             Row(
               children: [
                 IconButton(
@@ -398,6 +512,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                   },
                   icon: const Icon(Icons.chevron_left),
                 ),
+
                 Expanded(
                   child: Text(
                     _monthLabel(_currentMonth),
@@ -405,6 +520,7 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
+
                 IconButton(
                   onPressed: () {
                     setState(() {
@@ -418,7 +534,12 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 8),
+
+            // -----------------------------------------------------------------
+            // WEEKDAY HEADER
+            // -----------------------------------------------------------------
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -436,47 +557,71 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                   )
                   .toList(),
             ),
+
             const SizedBox(height: 4),
+
+            // -----------------------------------------------------------------
+            // CALENDAR GRID
+            // -----------------------------------------------------------------
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
               ),
+
               itemCount: _daysForMonth(_currentMonth).length,
+
               itemBuilder: (context, index) {
-                final day = _daysForMonth(_currentMonth)[index];
-                final isCurrentMonth = day.month == _currentMonth.month;
+                final days = _daysForMonth(_currentMonth);
+
+                final day = days[index];
+
+                final isCurrentMonth =
+                    day.month == _currentMonth.month &&
+                    day.year == _currentMonth.year;
+
                 final isSelected =
-                    eventKeyFor(day).difference(_selectedDate).inDays == 0;
+                    eventKeyFor(day) == eventKeyFor(_selectedDate);
+
                 final hasEvent = hasEventsForDate(_events, day);
+
                 final showEmpty = _showEmptyDays && isCurrentMonth && !hasEvent;
 
                 return GestureDetector(
-                  onTap: () => _selectDay(day),
+                  onTap: () {
+                    _selectDay(day);
+                  },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
+
                     decoration: BoxDecoration(
                       color: isSelected
                           ? Theme.of(context).colorScheme.primaryContainer
-                          : (hasEvent
-                                ? Colors.orange.shade100
-                                : (showEmpty
-                                      ? Colors.green.shade50
-                                      : Colors.white)),
+                          : hasEvent
+                          ? Colors.orange.shade100
+                          : showEmpty
+                          ? Colors.green.shade50
+                          : Colors.white,
+
                       borderRadius: BorderRadius.circular(12),
+
                       border: Border.all(
                         color: isSelected
                             ? Theme.of(context).colorScheme.primary
                             : Colors.grey.shade300,
                       ),
                     ),
+
                     child: Padding(
                       padding: const EdgeInsets.all(6),
+
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+
                         children: [
                           Text(
                             '${day.day}',
@@ -489,7 +634,9 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                                   : FontWeight.normal,
                             ),
                           ),
+
                           const Spacer(),
+
                           if (hasEvent)
                             Container(
                               width: 8,
@@ -514,31 +661,47 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                 );
               },
             ),
+
             const SizedBox(height: 16),
+
+            // -----------------------------------------------------------------
+            // SELECTED DAY EVENTS
+            // -----------------------------------------------------------------
             Container(
               padding: const EdgeInsets.all(16),
+
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(18),
               ),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+
                 children: [
                   Row(
                     children: [
                       Text(
-                        'Events for ${_selectedDate.day}.${_selectedDate.month}',
+                        'Events for '
+                        '${_selectedDate.day}.'
+                        '${_selectedDate.month}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
+
                       const Spacer(),
+
                       IconButton(
-                        onPressed: () => _showEventEditor(),
+                        onPressed: () {
+                          _showEventEditor();
+                        },
                         icon: const Icon(Icons.add_circle_outline),
                         tooltip: 'Add event',
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 8),
+
                   if (dayEvents.isEmpty)
                     const Text('No events yet — add one to plan family time.')
                   else
@@ -546,15 +709,20 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
+
                           subtitle: Text(
                             event.description.isEmpty
                                 ? 'No notes'
                                 : event.description,
                           ),
+
                           trailing: IconButton(
                             icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _showEventEditor(event: event),
+                            onPressed: () {
+                              _showEventEditor(event: event);
+                            },
                           ),
+
                           leading: Icon(
                             Icons.event_available,
                             color: Theme.of(context).colorScheme.primary,
@@ -568,8 +736,14 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
           ],
         ),
       ),
+
+      // -----------------------------------------------------------------------
+      // NEW EVENT BUTTON
+      // -----------------------------------------------------------------------
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showEventEditor(),
+        onPressed: () {
+          _showEventEditor();
+        },
         icon: const Icon(Icons.add),
         label: const Text('New event'),
       ),
@@ -577,7 +751,10 @@ class _FamilyCalendarPageState extends State<FamilyCalendarPage> {
   }
 }
 
-// Data model for one family event on the calendar.
+// -----------------------------------------------------------------------------
+// EVENT MODEL
+// -----------------------------------------------------------------------------
+
 class Event {
   Event({required this.title, required this.description, required this.date});
 
