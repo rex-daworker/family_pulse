@@ -1,6 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/event_model.dart';
 import '../services/event_service.dart';
+import 'auth_provider.dart';
 
 // 1. Expose a single instance of the EventService across the app
 final eventServiceProvider = Provider<EventService>((ref) {
@@ -41,3 +44,35 @@ class MemberEventsArgs {
   @override
   int get hashCode => familyId.hashCode ^ userId.hashCode;
 }
+
+// 5. Convenience provider for FamilyCalendarPage:
+//   - resolves the current user's familyId automatically via
+//     currentFamilyIdProvider, so call sites don't have to pass one in
+//   - maps the raw QuerySnapshot into typed EventModel instances, since the
+//     calendar UI wants typed events rather than raw Firestore documents
+// Emits an empty list while there's no family yet — matches the router's
+// redirect, which already keeps unaffiliated users off any screen that
+// would watch this.
+//
+// Goes through eventServiceProvider directly rather than
+// familyEventsStreamProvider(familyId).stream — the .stream modifier on a
+// family provider is deprecated as of riverpod ^2.6.
+final familyEventsProvider = StreamProvider<List<EventModel>>((ref) async* {
+  final familyId = await ref.watch(currentFamilyIdProvider.future);
+
+  if (familyId == null) {
+    yield <EventModel>[];
+    return;
+  }
+
+  final eventService = ref.watch(eventServiceProvider);
+
+  yield* eventService.getFamilyEvents(familyId).map((snapshot) {
+    return snapshot.docs
+        .map(
+          (doc) =>
+              EventModel.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+        )
+        .toList();
+  });
+});
