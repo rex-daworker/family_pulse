@@ -22,6 +22,13 @@ class PulseScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Family Pulse'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        actions: [
+          IconButton(
+            onPressed: () => _signOut(context, ref),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+          ),
+        ],
       ),
       body: eventsAsync.when(
         data: (events) {
@@ -43,6 +50,29 @@ class PulseScreen extends ConsumerWidget {
       return displayName.trim().split(' ').first;
     }
     return email ?? 'there';
+  }
+}
+
+// Moved here from FamilyCalendarPage — sign-out belongs on the landing
+// page now that Pulse (not the calendar) is the app's home.
+Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  try {
+    await ref.read(authServiceProvider).signOut();
+
+    // Firebase auth state changes also make GoRouter redirect on its own;
+    // this is a belt-and-suspenders nudge in case that hasn't fired yet.
+    if (context.mounted) {
+      context.go('/welcome');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not sign out: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 }
 
