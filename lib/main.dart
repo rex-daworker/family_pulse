@@ -15,6 +15,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/family/create_family_screen.dart';
 import 'screens/family/family_choice_screen.dart';
 import 'screens/family/join_family_screen.dart';
+import 'screens/home/pulse_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -124,8 +125,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const PulseScreen()),
       GoRoute(
-        path: '/',
+        path: '/calendar',
         builder: (context, state) => const FamilyCalendarPage(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
