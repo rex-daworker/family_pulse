@@ -45,12 +45,16 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             userEmail: user.email ?? '',
           );
 
-      ref.invalidate(currentFamilyIdProvider);
-      await ref.read(currentFamilyIdProvider.future);
-
+      // Show the code BEFORE touching currentFamilyIdProvider. The router
+      // listens for that provider to resolve and auto-redirects away from
+      // this screen the instant it does — invalidating it first meant the
+      // redirect could fire (and tear down this screen) before the dialog
+      // ever had a chance to appear, so the user got bounced straight to
+      // the Pulse page with no code shown.
       if (mounted) {
         await showDialog<void>(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
             title: const Text('Family created'),
             content: SelectableText(
@@ -60,14 +64,25 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
               TextButton(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: familyId));
-                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Code copied')));
                 },
                 child: const Text('Copy code'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Continue'),
               ),
             ],
           ),
         );
       }
+
+      // Now that the user has seen the code, let the router know the
+      // family exists — this is what triggers the redirect to '/'.
+      ref.invalidate(currentFamilyIdProvider);
+      if (mounted) await ref.read(currentFamilyIdProvider.future);
 
       if (mounted) context.go('/');
     } catch (e) {
