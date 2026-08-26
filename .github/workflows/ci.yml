@@ -45,8 +45,8 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
           subject: "🚨 Family Pulse build failed — ${{ github.ref_name }} (${{ github.actor }})"
           to: ${{ vars.CI_NOTIFY_EMAILS }}
           from: "Family Pulse CI"
