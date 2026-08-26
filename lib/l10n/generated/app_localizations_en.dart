@@ -740,4 +740,71 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get familyErrorNotFound =>
       'Family not found. Check the code and try again.';
+
+  @override
+  String get recurrenceLabel => 'Repeats';
+
+  @override
+  String get recurrenceNone => 'Doesn\'t repeat';
+
+  @override
+  String get recurrenceDaily => 'Daily';
+
+  @override
+  String get recurrenceWeekly => 'Weekly';
+
+  @override
+  String get recurrenceMonthly => 'Monthly';
+
+  @override
+  String get recurrenceYearly => 'Yearly';
+
+  @override
+  String get recurrenceNoEndDate => 'No end date';
+
+  @override
+  String recurrenceEndsOn(String date) {
+    return 'Ends $date';
+  }
+
+  @override
+  String get recurrenceClearEndDate => 'Remove end date';
+
+  @override
+  String get partOfRecurringSeriesNote =>
+      'This is one event in a repeating series — editing it only changes this occurrence, not the whole series.';
+
+  @override
+  String get reminderLabel => 'Reminder';
+
+  @override
+  String get reminderOff => 'No reminder';
+
+  @override
+  String get reminderAtEventTime => 'At the time of the event';
+
+  @override
+  String reminderMinutesBefore(int minutes) {
+    return '$minutes minutes before';
+  }
+
+  @override
+  String reminderHoursBefore(int hours) {
+    return '$hours hour before';
+  }
+
+  @override
+  String reminderDaysBefore(int days) {
+    return '$days day before';
+  }
+
+  @override
+  String reminderNotificationTitle(String title) {
+    return 'Upcoming: $title';
+  }
+
+  @override
+  String reminderNotificationBody(String time) {
+    return 'Starts at $time';
+  }
 }

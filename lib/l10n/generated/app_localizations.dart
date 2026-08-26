@@ -1419,6 +1419,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Family not found. Check the code and try again.'**
   String get familyErrorNotFound;
+
+  /// No description provided for @recurrenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats'**
+  String get recurrenceLabel;
+
+  /// No description provided for @recurrenceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Doesn\'t repeat'**
+  String get recurrenceNone;
+
+  /// No description provided for @recurrenceDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get recurrenceDaily;
+
+  /// No description provided for @recurrenceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get recurrenceWeekly;
+
+  /// No description provided for @recurrenceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get recurrenceMonthly;
+
+  /// No description provided for @recurrenceYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
+  String get recurrenceYearly;
+
+  /// No description provided for @recurrenceNoEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No end date'**
+  String get recurrenceNoEndDate;
+
+  /// No description provided for @recurrenceEndsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends {date}'**
+  String recurrenceEndsOn(String date);
+
+  /// No description provided for @recurrenceClearEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove end date'**
+  String get recurrenceClearEndDate;
+
+  /// No description provided for @partOfRecurringSeriesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This is one event in a repeating series — editing it only changes this occurrence, not the whole series.'**
+  String get partOfRecurringSeriesNote;
+
+  /// No description provided for @reminderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get reminderLabel;
+
+  /// No description provided for @reminderOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminder'**
+  String get reminderOff;
+
+  /// No description provided for @reminderAtEventTime.
+  ///
+  /// In en, this message translates to:
+  /// **'At the time of the event'**
+  String get reminderAtEventTime;
+
+  /// No description provided for @reminderMinutesBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes before'**
+  String reminderMinutesBefore(int minutes);
+
+  /// No description provided for @reminderHoursBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hour before'**
+  String reminderHoursBefore(int hours);
+
+  /// No description provided for @reminderDaysBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} day before'**
+  String reminderDaysBefore(int days);
+
+  /// No description provided for @reminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming: {title}'**
+  String reminderNotificationTitle(String title);
+
+  /// No description provided for @reminderNotificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts at {time}'**
+  String reminderNotificationBody(String time);
 }
 
 class _AppLocalizationsDelegate

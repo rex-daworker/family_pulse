@@ -335,5 +335,42 @@
   "authErrorInvalidEmail": "Please enter a valid email address.",
   "authErrorNotSignedIn": "You need to be signed in to do that.",
   "authErrorUnknown": "Something went wrong. Please try again.",
-  "familyErrorNotFound": "Family not found. Check the code and try again."
+  "familyErrorNotFound": "Family not found. Check the code and try again.",
+
+  "recurrenceLabel": "Repeats",
+  "recurrenceNone": "Doesn't repeat",
+  "recurrenceDaily": "Daily",
+  "recurrenceWeekly": "Weekly",
+  "recurrenceMonthly": "Monthly",
+  "recurrenceYearly": "Yearly",
+  "recurrenceNoEndDate": "No end date",
+  "recurrenceEndsOn": "Ends {date}",
+  "@recurrenceEndsOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "recurrenceClearEndDate": "Remove end date",
+  "partOfRecurringSeriesNote": "This is one event in a repeating series — editing it only changes this occurrence, not the whole series.",
+  "reminderLabel": "Reminder",
+  "reminderOff": "No reminder",
+  "reminderAtEventTime": "At the time of the event",
+  "reminderMinutesBefore": "{minutes} minutes before",
+  "@reminderMinutesBefore": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "reminderHoursBefore": "{hours} hour before",
+  "@reminderHoursBefore": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "reminderDaysBefore": "{days} day before",
+  "@reminderDaysBefore": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "reminderNotificationTitle": "Upcoming: {title}",
+  "@reminderNotificationTitle": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "reminderNotificationBody": "Starts at {time}",
+  "@reminderNotificationBody": {
+    "placeholders": { "time": { "type": "String" } }
+  }
 }

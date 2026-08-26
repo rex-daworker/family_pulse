@@ -240,5 +240,42 @@
   "authErrorInvalidEmail": "Ange en giltig e-postadress.",
   "authErrorNotSignedIn": "Du måste vara inloggad för att göra det.",
   "authErrorUnknown": "Något gick fel. Försök igen.",
-  "familyErrorNotFound": "Familjen hittades inte. Kontrollera koden och försök igen."
+  "familyErrorNotFound": "Familjen hittades inte. Kontrollera koden och försök igen.",
+
+  "recurrenceLabel": "Upprepas",
+  "recurrenceNone": "Upprepas inte",
+  "recurrenceDaily": "Dagligen",
+  "recurrenceWeekly": "Varje vecka",
+  "recurrenceMonthly": "Varje månad",
+  "recurrenceYearly": "Varje år",
+  "recurrenceNoEndDate": "Inget slutdatum",
+  "recurrenceEndsOn": "Slutar {date}",
+  "@recurrenceEndsOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "recurrenceClearEndDate": "Ta bort slutdatum",
+  "partOfRecurringSeriesNote": "Det här är en händelse i en återkommande serie — ändringar gäller bara denna gång, inte hela serien.",
+  "reminderLabel": "Påminnelse",
+  "reminderOff": "Ingen påminnelse",
+  "reminderAtEventTime": "Vid händelsens starttid",
+  "reminderMinutesBefore": "{minutes} minuter innan",
+  "@reminderMinutesBefore": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "reminderHoursBefore": "{hours} timme innan",
+  "@reminderHoursBefore": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "reminderDaysBefore": "{days} dag innan",
+  "@reminderDaysBefore": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "reminderNotificationTitle": "Kommande: {title}",
+  "@reminderNotificationTitle": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "reminderNotificationBody": "Börjar {time}",
+  "@reminderNotificationBody": {
+    "placeholders": { "time": { "type": "String" } }
+  }
 }

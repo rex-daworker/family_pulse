@@ -3,11 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/event_model.dart';
 import '../services/event_service.dart';
+import '../services/notification_service.dart';
 import 'auth_provider.dart';
 
 // 1. Expose a single instance of the EventService across the app
 final eventServiceProvider = Provider<EventService>((ref) {
   return EventService();
+});
+
+// 1b. NotificationService is a plain singleton (see its own file for why —
+// the plugin it wraps is itself process-global), exposed as a provider
+// purely so call sites can `ref.read` it like every other service instead
+// of importing a bare singleton.
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService.instance;
 });
 
 // 2. Real-time Stream Provider for tracking all family calendar events

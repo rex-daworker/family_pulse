@@ -1,6 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/event_model.dart';
+
+// A recurring series is materialized as individual event documents up
+// front (one per occurrence), all sharing a `series_id`, rather than
+// stored as a single rule that gets expanded at read time. That keeps
+// every existing Firestore query (day-range lookups, the free-time
+// finder, per-member streams) working unchanged, since each occurrence is
+// an ordinary event document — the tradeoff is that occurrences are only
+// generated up to a bounded horizon, not forever.
+const int _maxRecurrenceOccurrences = 60;
+const int _maxRecurrenceHorizonDays = 366;
+
 class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -8,8 +20,53 @@ class EventService {
   // ─── HELPER: get current user ID ───────────────────────────
   String get _uid => _auth.currentUser!.uid;
 
+  /// Builds the list of occurrence start dates for a recurrence preset,
+  /// starting at (and including) [start]. Stops at whichever comes first:
+  /// [recurrenceEndDate], the built-in occurrence cap, or the built-in
+  /// horizon cap — so a series with no end date, or a "yearly" series,
+  /// can't silently write an unbounded number of documents.
+  List<DateTime> _generateOccurrenceDates({
+    required DateTime start,
+    required String recurrence,
+    DateTime? recurrenceEndDate,
+  }) {
+    if (recurrence == 'none') return [start];
+
+    final horizon = start.add(const Duration(days: _maxRecurrenceHorizonDays));
+    final cutoff =
+        (recurrenceEndDate != null && recurrenceEndDate.isBefore(horizon))
+        ? recurrenceEndDate
+        : horizon;
+
+    // Known edge case, same one Google Calendar has: starting on the 31st
+    // and stepping "monthly" lands on a month with no 31st — Dart's
+    // DateTime constructor normalizes that by rolling into the following
+    // month (e.g. Jan 31 -> "Feb 31" -> Mar 3) rather than clamping to the
+    // last day of the short month. Acceptable for a fixed-preset MVP;
+    // worth a dedicated fix (clamp to month length) if this trips someone.
+    DateTime step(DateTime d) => switch (recurrence) {
+      'daily' => d.add(const Duration(days: 1)),
+      'weekly' => d.add(const Duration(days: 7)),
+      'monthly' => DateTime(d.year, d.month + 1, d.day, d.hour, d.minute),
+      'yearly' => DateTime(d.year + 1, d.month, d.day, d.hour, d.minute),
+      _ => d,
+    };
+
+    final dates = <DateTime>[start];
+    var current = start;
+    while (dates.length < _maxRecurrenceOccurrences) {
+      current = step(current);
+      if (current.isAfter(cutoff)) break;
+      dates.add(current);
+    }
+    return dates;
+  }
+
   // ─── CREATE EVENT ──────────────────────────────────────────
-  Future<void> createEvent({
+  // Returns every occurrence actually written — just the one event for a
+  // one-off ('recurrence' == 'none'), or the whole materialized series
+  // otherwise — so the caller can schedule a reminder for each.
+  Future<List<EventModel>> createEvent({
     required String familyId,
     required String title,
     required String category, // 'school', 'hobby', 'work', 'other'
@@ -17,20 +74,71 @@ class EventService {
     required DateTime endTime,
     String? description,
     required String userName,
+    String recurrence = 'none',
+    DateTime? recurrenceEndDate,
+    int? reminderMinutesBefore,
   }) async {
-    await _firestore
+    final occurrenceStarts = _generateOccurrenceDates(
+      start: startTime,
+      recurrence: recurrence,
+      recurrenceEndDate: recurrenceEndDate,
+    );
+    final duration = endTime.difference(startTime);
+
+    final eventsRef = _firestore
         .collection('families')
         .doc(familyId)
-        .collection('events')
-        .add({
-          'title': title,
-          'category': category,
-          'start_time': Timestamp.fromDate(startTime),
-          'end_time': Timestamp.fromDate(endTime),
-          'description': description ?? '',
-          'user_id': _uid, // auto-stamped from logged-in user
-          'user_name': userName, // denormalized for fast rendering
-        });
+        .collection('events');
+
+    // A one-off event doesn't need a series_id at all — only stamp one
+    // when there's actually more than one occurrence to tie together.
+    final seriesId = occurrenceStarts.length > 1
+        ? eventsRef.doc().id
+        : null;
+
+    final batch = _firestore.batch();
+    final created = <EventModel>[];
+
+    for (final occurrenceStart in occurrenceStarts) {
+      final docRef = eventsRef.doc();
+      final occurrenceEnd = occurrenceStart.add(duration);
+      batch.set(docRef, {
+        'title': title,
+        'category': category,
+        'start_time': Timestamp.fromDate(occurrenceStart),
+        'end_time': Timestamp.fromDate(occurrenceEnd),
+        'date': Timestamp.fromDate(occurrenceStart),
+        'description': description ?? '',
+        'user_id': _uid, // auto-stamped from logged-in user
+        'user_name': userName, // denormalized for fast rendering
+        'recurrence': recurrence,
+        'recurrence_end_date': recurrenceEndDate != null
+            ? Timestamp.fromDate(recurrenceEndDate)
+            : null,
+        'series_id': seriesId,
+        'reminder_minutes_before': reminderMinutesBefore,
+      });
+      created.add(
+        EventModel(
+          id: docRef.id,
+          title: title,
+          description: description ?? '',
+          date: occurrenceStart,
+          category: category,
+          startTime: occurrenceStart,
+          endTime: occurrenceEnd,
+          userId: _uid,
+          userName: userName,
+          recurrence: recurrence,
+          recurrenceEndDate: recurrenceEndDate,
+          seriesId: seriesId,
+          reminderMinutesBefore: reminderMinutesBefore,
+        ),
+      );
+    }
+
+    await batch.commit();
+    return created;
   }
 
   // ─── READ ALL FAMILY EVENTS (real-time stream) ─────────────

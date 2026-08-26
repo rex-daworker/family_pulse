@@ -743,4 +743,71 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get familyErrorNotFound =>
       'Familjen hittades inte. Kontrollera koden och försök igen.';
+
+  @override
+  String get recurrenceLabel => 'Upprepas';
+
+  @override
+  String get recurrenceNone => 'Upprepas inte';
+
+  @override
+  String get recurrenceDaily => 'Dagligen';
+
+  @override
+  String get recurrenceWeekly => 'Varje vecka';
+
+  @override
+  String get recurrenceMonthly => 'Varje månad';
+
+  @override
+  String get recurrenceYearly => 'Varje år';
+
+  @override
+  String get recurrenceNoEndDate => 'Inget slutdatum';
+
+  @override
+  String recurrenceEndsOn(String date) {
+    return 'Slutar $date';
+  }
+
+  @override
+  String get recurrenceClearEndDate => 'Ta bort slutdatum';
+
+  @override
+  String get partOfRecurringSeriesNote =>
+      'Det här är en händelse i en återkommande serie — ändringar gäller bara denna gång, inte hela serien.';
+
+  @override
+  String get reminderLabel => 'Påminnelse';
+
+  @override
+  String get reminderOff => 'Ingen påminnelse';
+
+  @override
+  String get reminderAtEventTime => 'Vid händelsens starttid';
+
+  @override
+  String reminderMinutesBefore(int minutes) {
+    return '$minutes minuter innan';
+  }
+
+  @override
+  String reminderHoursBefore(int hours) {
+    return '$hours timme innan';
+  }
+
+  @override
+  String reminderDaysBefore(int days) {
+    return '$days dag innan';
+  }
+
+  @override
+  String reminderNotificationTitle(String title) {
+    return 'Kommande: $title';
+  }
+
+  @override
+  String reminderNotificationBody(String time) {
+    return 'Börjar $time';
+  }
 }
