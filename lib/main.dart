@@ -5,18 +5,22 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
+import 'providers/settings_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'screens/family/create_family_screen.dart';
 import 'screens/family/family_choice_screen.dart';
 import 'screens/family/join_family_screen.dart';
+import 'screens/home/free_time_screen.dart';
 import 'screens/home/pulse_screen.dart';
+import 'screens/settings/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +36,17 @@ void main() async {
     if (e.code != 'duplicate-app') rethrow;
   }
 
-  runApp(const ProviderScope(child: FamilyPulseApp()));
+  // Loaded once here (rather than inside each setting) so the theme
+  // choice and other persisted settings are available synchronously via
+  // sharedPreferencesProvider everywhere else in the app.
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const FamilyPulseApp(),
+    ),
+  );
 }
 
 // Normalizes a DateTime to the calendar day only, so events can be grouped by day.
@@ -54,9 +68,20 @@ class FamilyPulseApp extends ConsumerWidget {
       title: 'FamilyPulse',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: ref.watch(routerProvider),
     );
   }
@@ -138,6 +163,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
       ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/free-time',
+        builder: (context, state) => const FreeTimeScreen(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
@@ -172,7 +205,10 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   late DateTime _currentMonth;
   late DateTime _selectedDate;
 
-  bool _showEmptyDays = false;
+  // Starting value comes from Settings' "show empty days by default";
+  // the AppBar icon below can still flip it for the rest of this session
+  // without changing that default.
+  late bool _showEmptyDays;
 
   // Populated at the top of build() from the live familyEventsProvider
   // stream — see _groupEventsByDay(). Starts empty so the first frame
@@ -207,6 +243,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     _currentMonth = DateTime(now.year, now.month);
 
     _selectedDate = eventKeyFor(now);
+
+    _showEmptyDays = ref.read(showEmptyDaysByDefaultProvider);
   }
 
   // ---------------------------------------------------------------------------

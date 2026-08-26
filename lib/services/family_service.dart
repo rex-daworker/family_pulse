@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/family_member_model.dart';
+import '../models/family_model.dart';
 
 class FamilyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -69,5 +71,33 @@ class FamilyService {
       return querySnapshot.docs.first.reference.parent.parent!.id;
     }
     return null;
+  }
+
+  // 4. Fetch a family's own info (name, creation date) by its ID — this ID
+  // doubles as the referral code members join with, so the Settings screen
+  // can show "name / created / code" together in one place.
+  Future<FamilyModel?> getFamily(String familyId) async {
+    final doc = await _firestore.collection('families').doc(familyId).get();
+    if (!doc.exists) return null;
+    return FamilyModel.fromMap(doc.data()!, doc.id);
+  }
+
+  // 5. Live list of everyone in a family — the Free Time finder uses this
+  // to know whose calendars to check. This is a plain (non-collection-group)
+  // query against one family's `users` subcollection, so it's covered by
+  // the more specific `families/{familyId}/users/{userId}` rule (any
+  // member can read the whole subcollection), not the collection-group
+  // rule that only permits reading your own membership doc.
+  Stream<List<FamilyMember>> getFamilyMembers(String familyId) {
+    return _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('users')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => FamilyMember.fromMap(doc.data()))
+              .toList(),
+        );
   }
 }

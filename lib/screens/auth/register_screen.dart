@@ -14,15 +14,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _confirmEmailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-run validation on the confirm fields as the user edits the
+    // originals, so a fixed typo clears the "doesn't match" error without
+    // needing to also touch the confirm field itself.
+    _emailController.addListener(_revalidateConfirmEmail);
+    _passwordController.addListener(_revalidateConfirmPassword);
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_revalidateConfirmEmail);
+    _passwordController.removeListener(_revalidateConfirmPassword);
     _nameController.dispose();
     _emailController.dispose();
+    _confirmEmailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _revalidateConfirmEmail() {
+    if (_confirmEmailController.text.isNotEmpty) {
+      _formKey.currentState?.validate();
+    }
+  }
+
+  void _revalidateConfirmPassword() {
+    if (_confirmPasswordController.text.isNotEmpty) {
+      _formKey.currentState?.validate();
+    }
   }
 
   String? _validateName(String? value) {
@@ -39,10 +69,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return null;
   }
 
+  String? _validateConfirmEmail(String? value) {
+    final confirmEmail = value?.trim().toLowerCase() ?? '';
+    if (confirmEmail.isEmpty) return 'Please confirm your email';
+    if (confirmEmail != _emailController.text.trim().toLowerCase()) {
+      return 'Emails don\'t match';
+    }
+    return null;
+  }
+
   String? _validatePassword(String? value) {
     final password = value ?? '';
     if (password.isEmpty) return 'Password is required';
     if (password.length < 6) return 'At least 6 characters';
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    final confirmPassword = value ?? '';
+    if (confirmPassword.isEmpty) return 'Please confirm your password';
+    if (confirmPassword != _passwordController.text) {
+      return 'Passwords don\'t match';
+    }
     return null;
   }
 
@@ -100,11 +148,60 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                controller: _confirmEmailController,
+                decoration: const InputDecoration(labelText: 'Confirm email'),
+                keyboardType: TextInputType.emailAddress,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: _validateConfirmEmail,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    tooltip: _obscurePassword
+                        ? 'Show password'
+                        : 'Hide password',
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                ),
+                obscureText: _obscurePassword,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: _validatePassword,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                decoration: InputDecoration(
+                  labelText: 'Confirm password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    tooltip: _obscureConfirmPassword
+                        ? 'Show password'
+                        : 'Hide password',
+                    onPressed: () {
+                      setState(
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
+                      );
+                    },
+                  ),
+                ),
+                obscureText: _obscureConfirmPassword,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: _validateConfirmPassword,
               ),
               const SizedBox(height: 24),
               _isLoading

@@ -56,6 +56,20 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // ─── UPDATE DISPLAY NAME ───────────────────────────────────
+  // Used by the Settings screen so a user can fix a typo or just change
+  // what the app calls them. reload() is required afterward — otherwise
+  // the in-memory User object (and anything watching userChanges) keeps
+  // showing the old name until the next full sign-in.
+  Future<void> updateDisplayName(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('You need to be signed in to do that.');
+    }
+    await user.updateDisplayName(name);
+    await user.reload();
+  }
+
   // ─── ERROR HANDLER ─────────────────────────────────────────
   // Converts Firebase error codes into readable messages
   String _handleAuthError(FirebaseAuthException e) {

@@ -24,6 +24,11 @@ class PulseScreen extends ConsumerWidget {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         actions: [
           IconButton(
+            onPressed: () => context.push('/settings'),
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+          ),
+          IconButton(
             onPressed: () => _signOut(context, ref),
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
@@ -56,6 +61,9 @@ class PulseScreen extends ConsumerWidget {
 // Moved here from FamilyCalendarPage — sign-out belongs on the landing
 // page now that Pulse (not the calendar) is the app's home.
 Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  final confirmed = await _confirmSignOut(context);
+  if (!confirmed || !context.mounted) return;
+
   try {
     await ref.read(authServiceProvider).signOut();
 
@@ -74,6 +82,32 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
       );
     }
   }
+}
+
+// A tap on the logout icon used to sign out immediately with no way back —
+// one misclick and you're staring at the welcome screen. This makes it a
+// deliberate, two-step action instead.
+Future<bool> _confirmSignOut(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Sign out?'),
+      content: const Text(
+        "You'll need to log back in to see your family's calendar.",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Sign out'),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
 }
 
 class _PulseBody extends StatelessWidget {
