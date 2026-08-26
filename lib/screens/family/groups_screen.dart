@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/family_group_model.dart';
 import '../../models/family_member_model.dart';
 import '../../providers/auth_provider.dart';
@@ -15,23 +16,20 @@ class GroupsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final groupsAsync = ref.watch(familyGroupsProvider);
     final membersAsync = ref.watch(familyMembersProvider);
     final members = membersAsync.value ?? const <FamilyMember>[];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Family Groups')),
+      appBar: AppBar(title: Text(l10n.familyGroupsTitle)),
       body: groupsAsync.when(
         data: (groups) {
           if (groups.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No groups yet. Make one for things like "Kids" or '
-                  '"Chores squad" to organize who\'s involved in what.',
-                  textAlign: TextAlign.center,
-                ),
+                padding: const EdgeInsets.all(24),
+                child: Text(l10n.noGroupsYet, textAlign: TextAlign.center),
               ),
             );
           }
@@ -44,12 +42,12 @@ class GroupsScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
-            Center(child: Text('Could not load groups — $error')),
+            Center(child: Text(l10n.couldNotLoadGroupsError(error.toString()))),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openGroupEditor(context, ref),
         icon: const Icon(Icons.group_add),
-        label: const Text('New group'),
+        label: Text(l10n.newGroup),
       ),
     );
   }
@@ -74,22 +72,23 @@ Future<void> _deleteGroup(
   WidgetRef ref,
   FamilyGroupModel group,
 ) async {
+  final l10n = AppLocalizations.of(context);
   final familyId = ref.read(currentFamilyIdProvider).value;
   if (familyId == null) return;
 
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Delete group?'),
-      content: Text('"${group.name}" will be removed for everyone.'),
+      title: Text(l10n.deleteGroupTitle),
+      content: Text(l10n.deleteGroupContent(group.name)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -104,7 +103,7 @@ Future<void> _deleteGroup(
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Couldn't delete group — $e"),
+          content: Text(l10n.couldNotDeleteGroupError(e.toString())),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -120,9 +119,10 @@ class _GroupCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final memberNames = group.memberIds.map((id) {
       final match = members.where((m) => m.userId == id);
-      return match.isNotEmpty ? match.first.name : 'Unknown member';
+      return match.isNotEmpty ? match.first.name : l10n.unknownMember;
     }).toList();
 
     return Card(
@@ -142,18 +142,18 @@ class _GroupCard extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit group',
+                  tooltip: l10n.editGroup,
                   onPressed: () => _openGroupEditor(context, ref, group: group),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Delete group',
+                  tooltip: l10n.deleteGroupTooltip,
                   onPressed: () => _deleteGroup(context, ref, group),
                 ),
               ],
             ),
             if (memberNames.isEmpty)
-              const Text('No members yet.')
+              Text(l10n.noMembersYetGroup)
             else
               Wrap(
                 spacing: 6,
@@ -214,9 +214,10 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'Group name is required');
+      setState(() => _nameError = l10n.groupNameRequiredError);
       return;
     }
 
@@ -243,7 +244,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Couldn't save group — $e"),
+            content: Text(l10n.couldNotSaveGroupError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -253,10 +254,11 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final membersAsync = ref.watch(familyMembersProvider);
 
     return AlertDialog(
-      title: Text(widget.group == null ? 'New group' : 'Edit group'),
+      title: Text(widget.group == null ? l10n.newGroup : l10n.editGroup),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -266,7 +268,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'Group name',
+                labelText: l10n.groupNameLabel,
                 errorText: _nameError,
                 isDense: true,
               ),
@@ -275,15 +277,15 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
               },
             ),
             const SizedBox(height: 12),
-            const Text('Members'),
+            Text(l10n.membersLabel),
             const SizedBox(height: 4),
             Flexible(
               child: membersAsync.when(
                 data: (members) {
                   if (members.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('No family members found yet.'),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(l10n.noFamilyMembersFoundYet),
                     );
                   }
                   return ListView(
@@ -313,7 +315,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (error, stackTrace) =>
-                    Text('Could not load members — $error'),
+                    Text(l10n.couldNotLoadMembersError(error.toString())),
               ),
             ),
           ],
@@ -322,7 +324,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _isSaving ? null : _save,
@@ -332,7 +334,7 @@ class _GroupEditorDialogState extends ConsumerState<_GroupEditorDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );

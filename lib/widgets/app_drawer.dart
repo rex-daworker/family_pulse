@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/sign_out.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 /// The app's main navigation surface — a left-side drawer with a profile
@@ -15,12 +16,13 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final user = ref.watch(authStateProvider).value;
     final familyAsync = ref.watch(currentFamilyProvider);
 
     final displayName = (user?.displayName?.trim().isNotEmpty ?? false)
         ? user!.displayName!.trim()
-        : (user?.email ?? 'Family member');
+        : (user?.email ?? l10n.familyMemberFallback);
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
 
     return Drawer(
@@ -89,45 +91,45 @@ class AppDrawer extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.home_outlined,
-                    label: 'Home',
+                    label: l10n.homeNav,
                     path: '/',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.calendar_month,
-                    label: 'Calendar',
+                    label: l10n.calendarNav,
                     path: '/calendar',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.family_restroom,
-                    label: 'Family',
+                    label: l10n.familyNav,
                     path: '/family',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.groups_outlined,
-                    label: 'Groups',
+                    label: l10n.groupsNav,
                     path: '/groups',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.free_breakfast,
-                    label: 'Free time',
+                    label: l10n.freeTimeNav,
                     path: '/free-time',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.bar_chart,
-                    label: 'Analytics',
+                    label: l10n.analyticsNav,
                     path: '/analytics',
                   ),
                   const Divider(),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.person_outline,
-                    label: 'Profile',
+                    label: l10n.profileNav,
                     path: '/profile',
                   ),
-                  const _DrawerItem(
+                  _DrawerItem(
                     icon: Icons.settings_outlined,
-                    label: 'Settings',
+                    label: l10n.settingsNav,
                     path: '/settings',
                   ),
                 ],
@@ -136,7 +138,7 @@ class AppDrawer extends ConsumerWidget {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text('Sign out'),
+              title: Text(l10n.signOut),
               onTap: () {
                 Navigator.of(context).pop();
                 confirmAndSignOut(context, ref);

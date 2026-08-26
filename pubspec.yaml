@@ -40,6 +40,18 @@ dependencies:
   go_router: ^14.0.0
   # Local persistence (theme choice, calendar defaults, etc.)
   shared_preferences: ^2.3.2
+  # Localization (English / Finnish / Swedish) — see lib/l10n and l10n.yaml
+  flutter_localizations:
+    sdk: flutter
+  # Pinned by flutter_localizations in your Flutter SDK — pub refuses to
+  # resolve any other intl version alongside it, so this has to match
+  # exactly rather than just being "close enough".
+  intl: ^0.20.2
+  # Profile photo upload — Storage for the file, image_picker for the
+  # camera/gallery UI. Uses the default bucket already provisioned in
+  # google-services.json / GoogleService-Info.plist.
+  firebase_storage: ^12.3.0
+  image_picker: ^1.1.2
   # UI
 
   # The following adds the Cupertino Icons font to your application.
@@ -61,3 +73,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  # Turns on `flutter gen-l10n`, which reads l10n.yaml + lib/l10n/*.arb and
+  # generates the AppLocalizations class on every `flutter pub get`/`flutter run`.
+  generate: true

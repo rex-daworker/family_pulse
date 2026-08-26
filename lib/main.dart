@@ -3,12 +3,16 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/event_categories.dart';
+import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
@@ -73,21 +77,20 @@ class FamilyPulseApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'FamilyPulse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(ref.watch(themePaletteProvider)),
+      darkTheme: AppTheme.dark(ref.watch(themePaletteProvider)),
       themeMode: ref.watch(themeModeProvider),
+      // null here means "follow the device language" — MaterialApp resolves
+      // that against supportedLocales on its own. Only non-null once the
+      // user picks English/Finnish/Swedish explicitly in Settings.
+      locale: ref.watch(localeProvider),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
     );
   }
@@ -237,21 +240,6 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   // (before the stream has emitted) has something safe to read.
   Map<DateTime, List<EventModel>> _events = {};
 
-  final List<String> _monthNames = <String>[
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   // ---------------------------------------------------------------------------
   // INIT
   // ---------------------------------------------------------------------------
@@ -295,8 +283,24 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   // MONTH LABEL
   // ---------------------------------------------------------------------------
 
-  String _monthLabel(DateTime month) {
-    return '${_monthNames[month.month - 1]} ${month.year}';
+  // Locale-aware month + year (e.g. "August 2026", "elokuu 2026",
+  // "augusti 2026") — DateFormat picks the right month names for whatever
+  // language is active instead of us hand-translating a name array.
+  String _monthLabel(BuildContext context, DateTime month) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMM(locale).format(month);
+  }
+
+  // Locale-aware single-letter weekday header (S M T W T F S in English,
+  // but the right letters for whatever language is active). Anchored to
+  // 1970-01-04, a known Sunday, so this generates one of each weekday in
+  // Sun..Sat order without hardcoding any language's names.
+  List<String> _weekdayLabels(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    return List<String>.generate(7, (index) {
+      final day = DateTime(1970, 1, 4 + index);
+      return DateFormat('EEEEE', locale).format(day);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -352,7 +356,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     final user = ref.read(authStateProvider).value;
     return user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
-        : (user?.email ?? 'Family member');
+        : (user?.email ?? AppLocalizations.of(context).familyMemberFallback);
   }
 
   // Consistent colors so the snackbar itself signals success vs. failure,
@@ -372,11 +376,10 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   }
 
   Future<void> _deleteEvent(EventModel event) async {
+    final l10n = AppLocalizations.of(context);
     final familyId = ref.read(currentFamilyIdProvider).value;
     if (familyId == null) {
-      _showErrorSnackBar(
-        "Couldn't find your family yet — try again in a moment.",
-      );
+      _showErrorSnackBar(l10n.couldNotFindFamilyRetryError);
       return;
     }
 
@@ -384,16 +387,16 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete event?'),
-          content: Text('"${event.title}" will be removed for everyone.'),
+          title: Text(l10n.deleteEventTitle),
+          content: Text(l10n.deleteEventContent(event.title)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
+              child: Text(l10n.delete),
             ),
           ],
         );
@@ -406,9 +409,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       await ref
           .read(eventServiceProvider)
           .deleteEvent(familyId: familyId, eventId: event.id);
-      _showSuccessSnackBar('"${event.title}" deleted');
+      _showSuccessSnackBar(l10n.eventDeleted(event.title));
     } catch (e) {
-      _showErrorSnackBar("Couldn't delete event — $e");
+      _showErrorSnackBar(l10n.couldNotDeleteEventError(e.toString()));
     }
   }
 
@@ -441,7 +444,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
           final familyId = ref.read(currentFamilyIdProvider).value;
           if (familyId == null) {
             throw Exception(
-              "Couldn't find your family yet — try again in a moment.",
+              AppLocalizations.of(context).couldNotFindFamilyRetryError,
             );
           }
 
@@ -492,7 +495,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       setState(() {
         _selectedDate = eventKeyFor(savedDate);
       });
-      _showSuccessSnackBar(event == null ? 'Event added' : 'Event updated');
+      final l10n = AppLocalizations.of(context);
+      _showSuccessSnackBar(event == null ? l10n.eventAdded : l10n.eventUpdated);
     }
   }
 
@@ -512,8 +516,16 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stackTrace) => Scaffold(
-        appBar: AppBar(title: const Text('Family Calendar')),
-        body: Center(child: Text('Could not load events: $error')),
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context).familyCalendarTitle),
+        ),
+        body: Center(
+          child: Text(
+            AppLocalizations.of(
+              context,
+            ).couldNotLoadEventsError(error.toString()),
+          ),
+        ),
       ),
     );
   }
@@ -524,11 +536,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
   Widget _buildCalendarScaffold(BuildContext context) {
     final dayEvents = _eventsForSelectedDay();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Family Calendar'),
+        title: Text(l10n.familyCalendarTitle),
 
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
 
@@ -543,7 +556,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
             icon: Icon(
               _showEmptyDays ? Icons.visibility : Icons.visibility_off,
             ),
-            tooltip: _showEmptyDays ? 'Hide empty days' : 'Show empty days',
+            tooltip: _showEmptyDays
+                ? l10n.hideEmptyDaysTooltip
+                : l10n.showEmptyDaysTooltip,
           ),
 
           // Family screen.
@@ -552,7 +567,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
               context.push('/family');
             },
             icon: const Icon(Icons.family_restroom),
-            tooltip: 'My family',
+            tooltip: l10n.myFamilyTooltip,
           ),
         ],
       ),
@@ -580,7 +595,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                 Expanded(
                   child: Text(
-                    _monthLabel(_currentMonth),
+                    _monthLabel(context, _currentMonth),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -611,7 +626,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
               crossAxisCount: 7,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+              children: _weekdayLabels(context)
                   .map(
                     (label) => Center(
                       child: Text(
@@ -636,6 +651,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                 crossAxisCount: 7,
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
+                // Square cells (the default 1.0 ratio) are a hair too short
+                // for their content — day number + spacer + event dot/"Open"
+                // label overflows the bottom by a fraction of a pixel on
+                // most screens. Slightly taller-than-wide cells fix it with
+                // margin to spare, including for larger system font sizes.
+                childAspectRatio: 0.82,
               ),
 
               itemCount: _daysForMonth(_currentMonth).length,
@@ -711,6 +732,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                                 // so the month grid hints at what kind of day
                                 // it is before you even tap in.
                                 color: categoryMeta(
+                                  context,
                                   (_events[eventKeyFor(day)]?.first.category) ??
                                       'other',
                                 ).color,
@@ -719,7 +741,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             )
                           else if (showEmpty)
                             Text(
-                              'Open',
+                              l10n.openDayLabel,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade700,
@@ -753,9 +775,11 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   Row(
                     children: [
                       Text(
-                        'Events for '
-                        '${_selectedDate.day}.'
-                        '${_selectedDate.month}',
+                        l10n.eventsForDate(
+                          DateFormat.Md(
+                            Localizations.localeOf(context).toString(),
+                          ).format(_selectedDate),
+                        ),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
 
@@ -766,7 +790,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                           _showEventEditor();
                         },
                         icon: const Icon(Icons.add_circle_outline),
-                        tooltip: 'Add event',
+                        tooltip: l10n.addEventTooltip,
                       ),
                     ],
                   ),
@@ -774,10 +798,10 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   const SizedBox(height: 8),
 
                   if (dayEvents.isEmpty)
-                    const Text('No events yet — add one to plan family time.')
+                    Text(l10n.noEventsYet)
                   else
                     ...dayEvents.map((event) {
-                      final meta = categoryMeta(event.category);
+                      final meta = categoryMeta(context, event.category);
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
@@ -793,14 +817,14 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Edit event',
+                                tooltip: l10n.editEventTooltip,
                                 onPressed: () {
                                   _showEventEditor(event: event);
                                 },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                tooltip: 'Delete event',
+                                tooltip: l10n.deleteEventTooltip,
                                 onPressed: () {
                                   _deleteEvent(event);
                                 },
@@ -830,7 +854,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
           _showEventEditor();
         },
         icon: const Icon(Icons.add),
-        label: const Text('New event'),
+        label: Text(l10n.newEventButton),
       ),
     );
   }
@@ -914,13 +938,17 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
   }
 
   Future<void> _handleSave() async {
+    // Read everything context-derived before the `await` below — after it,
+    // this dialog may already be unmounted, and touching `context` (even
+    // just to look up AppLocalizations) at that point is unsafe.
+    final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
 
     // Inline validation — shown on the field itself, dialog stays open so
     // nothing typed is lost.
     if (title.isEmpty) {
       setState(() {
-        _titleError = 'Title is required';
+        _titleError = l10n.titleRequiredError;
       });
       return;
     }
@@ -947,14 +975,19 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
           _isSaving = false;
         });
       }
-      widget.onError("Couldn't save event — $e");
+      widget.onError(l10n.couldNotSaveEventError(e.toString()));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(widget.event == null ? 'Add event' : 'Edit event'),
+      title: Text(
+        widget.event == null
+            ? l10n.addEventDialogTitle
+            : l10n.editEventDialogTitle,
+      ),
 
       content: SizedBox(
         width: double.maxFinite,
@@ -965,7 +998,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
               controller: _titleController,
               maxLength: 60,
               decoration: InputDecoration(
-                labelText: 'Title',
+                labelText: l10n.titleFieldLabel,
                 errorText: _titleError,
                 isDense: true,
               ),
@@ -982,8 +1015,8 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
 
             TextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
+              decoration: InputDecoration(
+                labelText: l10n.notesLabel,
                 isDense: true,
                 alignLabelWithHint: true,
               ),
@@ -997,7 +1030,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Category',
+                l10n.categoryLabel,
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
@@ -1005,7 +1038,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
             Wrap(
               spacing: 8,
               children: kEventCategories.map((category) {
-                final meta = categoryMeta(category);
+                final meta = categoryMeta(context, category);
                 final selected = _selectedCategory == category;
                 return ChoiceChip(
                   avatar: Icon(
@@ -1029,7 +1062,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
             OutlinedButton.icon(
               onPressed: _pickTime,
               icon: const Icon(Icons.access_time),
-              label: Text('Time: ${_selectedTime.format(context)}'),
+              label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
             ),
           ],
         ),
@@ -1038,7 +1071,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
 
         FilledButton(
@@ -1049,7 +1082,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );

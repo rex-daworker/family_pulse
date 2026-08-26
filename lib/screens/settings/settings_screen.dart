@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../core/error_messages.dart';
 import '../../core/sign_out.dart';
+import '../../core/theme/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/family_member_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -13,8 +17,11 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final user = ref.watch(authStateProvider).value;
     final themeMode = ref.watch(themeModeProvider);
+    final themePalette = ref.watch(themePaletteProvider);
+    final locale = ref.watch(localeProvider);
     final showEmptyDays = ref.watch(showEmptyDaysByDefaultProvider);
     final familyAsync = ref.watch(currentFamilyProvider);
     final membersAsync = ref.watch(familyMembersProvider);
@@ -22,31 +29,31 @@ class SettingsScreen extends ConsumerWidget {
 
     final displayName = (user?.displayName?.trim().isNotEmpty ?? false)
         ? user!.displayName!.trim()
-        : 'Add your name';
+        : l10n.addYourName;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
-          const _SectionHeader('Appearance'),
+          _SectionHeader(l10n.appearanceHeader),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedButton<ThemeMode>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ThemeMode.system,
-                  icon: Icon(Icons.brightness_auto),
-                  label: Text('System'),
+                  icon: const Icon(Icons.brightness_auto),
+                  label: Text(l10n.systemOption),
                 ),
                 ButtonSegment(
                   value: ThemeMode.light,
-                  icon: Icon(Icons.light_mode),
-                  label: Text('Light'),
+                  icon: const Icon(Icons.light_mode),
+                  label: Text(l10n.lightOption),
                 ),
                 ButtonSegment(
                   value: ThemeMode.dark,
-                  icon: Icon(Icons.dark_mode),
-                  label: Text('Dark'),
+                  icon: const Icon(Icons.dark_mode),
+                  label: Text(l10n.darkOption),
                 ),
               ],
               selected: {themeMode},
@@ -58,9 +65,78 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.colorThemeLabel,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 18,
+              runSpacing: 12,
+              children: AppTheme.all
+                  .map(
+                    (palette) => _PaletteOption(
+                      palette: palette,
+                      selected: palette.key == themePalette.key,
+                      onTap: () => ref
+                          .read(themePaletteProvider.notifier)
+                          .setPalette(palette),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.languageLabel,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<Locale?>(
+              segments: [
+                ButtonSegment(
+                  value: null,
+                  label: Text(l10n.languageSystemOption),
+                ),
+                ButtonSegment(
+                  value: const Locale('en'),
+                  label: Text(l10n.languageEnglishOption),
+                ),
+                ButtonSegment(
+                  value: const Locale('fi'),
+                  label: Text(l10n.languageFinnishOption),
+                ),
+                ButtonSegment(
+                  value: const Locale('sv'),
+                  label: Text(l10n.languageSwedishOption),
+                ),
+              ],
+              selected: {locale},
+              onSelectionChanged: (selection) {
+                ref.read(localeProvider.notifier).setLocale(selection.first);
+              },
+            ),
+          ),
+
           const Divider(height: 32),
 
-          const _SectionHeader('Your name'),
+          _SectionHeader(l10n.yourNameHeader),
           ListTile(
             title: Text(displayName),
             subtitle: ownMember != null && ownMember.label.isNotEmpty
@@ -73,34 +149,32 @@ class SettingsScreen extends ConsumerWidget {
 
           const Divider(height: 32),
 
-          const _SectionHeader('Your family'),
+          _SectionHeader(l10n.yourFamilyHeader),
           familyAsync.when(
             data: (family) {
               if (family == null) {
-                return const ListTile(
-                  title: Text("You're not part of a family yet."),
-                );
+                return ListTile(title: Text(l10n.notInFamilyYet));
               }
               return Column(
                 children: [
                   ListTile(
                     leading: const Icon(Icons.home),
                     title: Text(family.name),
-                    subtitle: Text('Created ${_formatDate(family.createdAt)}'),
+                    subtitle: Text(
+                      l10n.createdOn(_formatDate(context, family.createdAt)),
+                    ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.qr_code),
                     title: SelectableText(family.id),
-                    subtitle: const Text(
-                      'Family code — share so others can join',
-                    ),
+                    subtitle: Text(l10n.familyCodeShareHelper),
                     trailing: IconButton(
                       icon: const Icon(Icons.copy),
-                      tooltip: 'Copy code',
+                      tooltip: l10n.copyCodeTooltip,
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: family.id));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Code copied')),
+                          SnackBar(content: Text(l10n.codeCopied)),
                         );
                       },
                     ),
@@ -112,19 +186,17 @@ class SettingsScreen extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (error, stackTrace) =>
-                ListTile(title: Text('Could not load family info — $error')),
+            error: (error, stackTrace) => ListTile(
+              title: Text(l10n.couldNotLoadFamilyInfoError(error.toString())),
+            ),
           ),
 
           const Divider(height: 32),
 
-          const _SectionHeader('Calendar'),
+          _SectionHeader(l10n.calendarHeader),
           SwitchListTile(
-            title: const Text('Show empty days by default'),
-            subtitle: const Text(
-              'Applies next time you open the calendar — you can still '
-              'toggle it there for a quick look.',
-            ),
+            title: Text(l10n.showEmptyDaysTitle),
+            subtitle: Text(l10n.showEmptyDaysSubtitle),
             value: showEmptyDays,
             onChanged: (value) {
               ref.read(showEmptyDaysByDefaultProvider.notifier).setValue(value);
@@ -133,10 +205,10 @@ class SettingsScreen extends ConsumerWidget {
 
           const Divider(height: 32),
 
-          const _SectionHeader('Account'),
+          _SectionHeader(l10n.accountHeader),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Sign out'),
+            title: Text(l10n.signOut),
             onTap: () => confirmAndSignOut(context, ref),
           ),
 
@@ -158,10 +230,11 @@ class SettingsScreen extends ConsumerWidget {
     String currentName,
     FamilyMember? ownMember,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final result = await showDialog<({String name, String label})>(
       context: context,
       builder: (dialogContext) => NameLabelDialog(
-        title: 'Your name',
+        title: l10n.yourNameHeader,
         initialName: currentName,
         initialLabel: ownMember?.label ?? '',
       ),
@@ -187,8 +260,8 @@ class SettingsScreen extends ConsumerWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Name updated'),
+          SnackBar(
+            content: Text(l10n.nameUpdated),
             backgroundColor: Colors.green,
           ),
         );
@@ -197,7 +270,9 @@ class SettingsScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Couldn't update name — $e"),
+            content: Text(
+              l10n.couldNotUpdateNameError(localizedErrorMessage(context, e)),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -205,22 +280,96 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  String _formatDate(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(locale).format(date);
+  }
+}
+
+// A tappable swatch for one ThemePalette — a two-color circle (a gradient
+// from its primary to its secondary, so both seed colors are visible at a
+// glance) with the palette's name underneath. The selected one gets a solid
+// ring plus a checkmark, rather than relying on color alone, so the
+// selection still reads for anyone with reduced color vision — worth
+// caring about here, since this picker is meant to work for kids too.
+class _PaletteOption extends StatelessWidget {
+  const _PaletteOption({
+    required this.palette,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ThemePalette palette;
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const _swatchSize = 52.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: _swatchSize,
+              height: _swatchSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [palette.primary, palette.secondary],
+                ),
+                border: Border.all(
+                  color: selected
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Colors.transparent,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: selected
+                  ? const Center(
+                      child: Icon(
+                        Icons.check_circle,
+                        color: Colors.white,
+                        size: 22,
+                        shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: _swatchSize + 12,
+              child: Text(
+                palette.label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

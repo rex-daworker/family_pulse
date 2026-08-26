@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 /// Shared "are you sure?" sign-out flow. Originally copy-pasted across
@@ -9,21 +10,20 @@ import '../providers/auth_provider.dart';
 /// drawer became a fourth call site, since four copies of the same dialog
 /// is the point where keeping them in sync by hand stops being reasonable.
 Future<void> confirmAndSignOut(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Sign out?'),
-      content: const Text(
-        "You'll need to log back in to see your family's calendar.",
-      ),
+      title: Text(l10n.signOutConfirmTitle),
+      content: Text(l10n.signOutConfirmContent),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Sign out'),
+          child: Text(l10n.signOut),
         ),
       ],
     ),
@@ -39,7 +39,7 @@ Future<void> confirmAndSignOut(BuildContext context, WidgetRef ref) async {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not sign out: $e'),
+          content: Text(l10n.couldNotSignOutError(e.toString())),
           backgroundColor: Colors.redAccent,
         ),
       );

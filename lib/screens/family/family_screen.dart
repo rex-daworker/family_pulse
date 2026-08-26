@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/family_roles.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/family_member_model.dart';
 import '../../models/family_model.dart';
 import '../../providers/auth_provider.dart';
@@ -22,17 +24,18 @@ class FamilyScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final familyAsync = ref.watch(currentFamilyProvider);
     final membersAsync = ref.watch(familyMembersProvider);
     final currentUserId = ref.watch(authStateProvider).value?.uid;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Family'),
+        title: Text(l10n.myFamilyTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.groups_outlined),
-            tooltip: 'Family groups',
+            tooltip: l10n.familyGroupsTooltip,
             onPressed: () => context.push('/groups'),
           ),
         ],
@@ -49,9 +52,9 @@ class FamilyScreen extends ConsumerWidget {
             familyAsync.when(
               data: (family) {
                 if (family == null) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text("You're not part of a family yet."),
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.notInFamilyYet),
                   );
                 }
                 return _FamilyHeader(family: family);
@@ -62,24 +65,27 @@ class FamilyScreen extends ConsumerWidget {
               ),
               error: (error, stackTrace) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Could not load family info — $error'),
+                child: Text(l10n.couldNotLoadFamilyInfoError(error.toString())),
               ),
             ),
 
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
               child: Text(
-                'MEMBERS',
-                style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+                l10n.membersHeader,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
               ),
             ),
 
             membersAsync.when(
               data: (members) {
                 if (members.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('No members found yet.'),
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l10n.noMembersFoundYet),
                   );
                 }
 
@@ -115,7 +121,7 @@ class FamilyScreen extends ConsumerWidget {
               ),
               error: (error, stackTrace) => Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Could not load members — $error'),
+                child: Text(l10n.couldNotLoadMembersError(error.toString())),
               ),
             ),
           ],
@@ -135,6 +141,7 @@ class _FamilyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.all(16),
       child: Padding(
@@ -161,7 +168,7 @@ class _FamilyHeader extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        'Created ${_formatDate(family.createdAt)}',
+                        l10n.createdOn(_formatDate(context, family.createdAt)),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -182,18 +189,18 @@ class _FamilyHeader extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy),
-                  tooltip: 'Copy family code',
+                  tooltip: l10n.copyFamilyCodeTooltip,
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: family.id));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Family code copied')),
+                      SnackBar(content: Text(l10n.familyCodeCopied)),
                     );
                   },
                 ),
               ],
             ),
             Text(
-              'Share this code so others can join.',
+              l10n.shareCodeHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -202,22 +209,9 @@ class _FamilyHeader extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  String _formatDate(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(locale).format(date);
   }
 }
 
@@ -234,6 +228,7 @@ class _MemberTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final parent = isParentRole(member.role);
 
@@ -266,7 +261,7 @@ class _MemberTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'You',
+                l10n.youBadge,
                 style: TextStyle(fontSize: 11, color: colorScheme.primary),
               ),
             ),
@@ -274,19 +269,19 @@ class _MemberTile extends ConsumerWidget {
         ],
       ),
       subtitle: Text(
-        '${memberSubtitle(member.role, member.label)} · ${member.email}',
+        '${memberSubtitle(context, member.role, member.label)} · ${member.email}',
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Chip(
-            label: Text(roleDisplayName(member.role)),
+            label: Text(roleDisplayName(context, member.role)),
             visualDensity: VisualDensity.compact,
           ),
           if (canRename)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Rename',
+              tooltip: l10n.renameTooltip,
               onPressed: () => _showRenameDialog(context, ref),
             ),
         ],
@@ -295,13 +290,14 @@ class _MemberTile extends ConsumerWidget {
   }
 
   Future<void> _showRenameDialog(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final familyId = ref.read(currentFamilyIdProvider).value;
     if (familyId == null) return;
 
     final result = await showDialog<({String name, String label})>(
       context: context,
       builder: (dialogContext) => NameLabelDialog(
-        title: 'Rename ${member.name}',
+        title: l10n.renameDialogTitle(member.name),
         initialName: member.name,
         initialLabel: member.label,
       ),
@@ -321,7 +317,11 @@ class _MemberTile extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${member.name.isNotEmpty ? member.name : "Member"} updated',
+              l10n.memberUpdated(
+                member.name.isNotEmpty
+                    ? member.name
+                    : l10n.familyMemberFallback,
+              ),
             ),
             backgroundColor: Colors.green.shade700,
           ),
@@ -331,7 +331,7 @@ class _MemberTile extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Couldn't update member — $e"),
+            content: Text(l10n.couldNotUpdateMemberError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );

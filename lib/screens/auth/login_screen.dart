@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/error_messages.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -25,16 +28,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String? _validateEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
     final email = value?.trim() ?? '';
-    if (email.isEmpty) return 'Email is required';
+    if (email.isEmpty) return l10n.emailRequiredError;
     if (!email.contains('@') || !email.contains('.')) {
-      return 'Enter a valid email address';
+      return l10n.emailInvalidError;
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if ((value ?? '').isEmpty) return 'Password is required';
+    if ((value ?? '').isEmpty) {
+      return AppLocalizations.of(context).passwordRequiredError;
+    }
     return null;
   }
 
@@ -55,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(localizedErrorMessage(context, e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -67,8 +73,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('FamilyPulse Login')),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -78,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: l10n.emailLabel),
                 keyboardType: TextInputType.emailAddress,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: _validateEmail,
@@ -87,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.passwordLabel,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -95,8 +102,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           : Icons.visibility,
                     ),
                     tooltip: _obscurePassword
-                        ? 'Show password'
-                        : 'Hide password',
+                        ? l10n.showPassword
+                        : l10n.hidePassword,
                     onPressed: () {
                       setState(() => _obscurePassword = !_obscurePassword);
                     },
@@ -111,11 +118,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _login,
-                      child: const Text('Login'),
+                      child: Text(l10n.loginButton),
                     ),
               TextButton(
                 onPressed: () => context.push('/register'),
-                child: const Text('Don\'t have an account? Register here.'),
+                child: Text(l10n.loginRegisterPrompt),
               ),
             ],
           ),

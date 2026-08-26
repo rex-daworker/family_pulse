@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/sign_out.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/event_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
@@ -17,24 +19,25 @@ class PulseScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final user = ref.watch(authStateProvider).value;
     final eventsAsync = ref.watch(familyEventsProvider);
 
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Family Pulse'),
+        title: Text(l10n.familyPulseTitle),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         actions: [
           IconButton(
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsNav,
           ),
           IconButton(
             onPressed: () => confirmAndSignOut(context, ref),
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: l10n.signOut,
           ),
         ],
       ),
@@ -47,7 +50,9 @@ class PulseScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) {
-          return Center(child: Text('Could not load your pulse: $error'));
+          return Center(
+            child: Text(l10n.couldNotLoadPulseError(error.toString())),
+          );
         },
       ),
     );
@@ -71,6 +76,7 @@ class _PulseBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final today = _dayOnly(now);
 
@@ -88,14 +94,14 @@ class _PulseBody extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'Hey, $greetingName',
+          l10n.greeting(greetingName),
           style: Theme.of(context).textTheme.headlineSmall,
         ),
 
         const SizedBox(height: 4),
 
         Text(
-          _dateLabel(now),
+          _dateLabel(context, now),
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
@@ -111,7 +117,7 @@ class _PulseBody extends StatelessWidget {
             Expanded(
               child: _StatCard(
                 icon: Icons.event,
-                label: 'Today',
+                label: l10n.todayLabel,
                 value: '${todayEvents.length}',
               ),
             ),
@@ -119,7 +125,7 @@ class _PulseBody extends StatelessWidget {
             Expanded(
               child: _StatCard(
                 icon: Icons.upcoming,
-                label: 'Upcoming',
+                label: l10n.upcomingStat,
                 value: '${upcomingEvents.length}',
               ),
             ),
@@ -132,21 +138,21 @@ class _PulseBody extends StatelessWidget {
         // TODAY'S SCHEDULE
         // -----------------------------------------------------------------
         Text(
-          "Today's schedule",
+          l10n.todaysSchedule,
           style: Theme.of(context).textTheme.titleMedium,
         ),
 
         const SizedBox(height: 8),
 
         if (todayEvents.isEmpty)
-          const _EmptyStateCard(text: 'Nothing on the calendar today.')
+          _EmptyStateCard(text: l10n.nothingToday)
         else
           ...todayEvents.map((event) {
             return Card(
               child: ListTile(
                 leading: const Icon(Icons.event_available),
                 title: Text(event.title),
-                subtitle: Text(_timeLabel(event.date)),
+                subtitle: Text(_clockLabel(context, event.date)),
               ),
             );
           }),
@@ -156,19 +162,19 @@ class _PulseBody extends StatelessWidget {
         // -----------------------------------------------------------------
         // COMING UP
         // -----------------------------------------------------------------
-        Text('Coming up', style: Theme.of(context).textTheme.titleMedium),
+        Text(l10n.comingUp, style: Theme.of(context).textTheme.titleMedium),
 
         const SizedBox(height: 8),
 
         if (nextUp.isEmpty)
-          const _EmptyStateCard(text: 'Nothing scheduled yet.')
+          _EmptyStateCard(text: l10n.nothingScheduledYet)
         else
           ...nextUp.map((event) {
             return Card(
               child: ListTile(
                 leading: const Icon(Icons.schedule),
                 title: Text(event.title),
-                subtitle: Text(_dateTimeLabel(event.date)),
+                subtitle: Text(_dateTimeLabel(context, event.date)),
               ),
             );
           }),
@@ -178,7 +184,7 @@ class _PulseBody extends StatelessWidget {
         // -----------------------------------------------------------------
         // QUICK NAV
         // -----------------------------------------------------------------
-        Text('Jump to', style: Theme.of(context).textTheme.titleMedium),
+        Text(l10n.jumpTo, style: Theme.of(context).textTheme.titleMedium),
 
         const SizedBox(height: 8),
 
@@ -189,27 +195,27 @@ class _PulseBody extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => context.push('/calendar'),
               icon: const Icon(Icons.calendar_month),
-              label: const Text('Calendar'),
+              label: Text(l10n.calendarNav),
             ),
             OutlinedButton.icon(
               onPressed: () => context.push('/family'),
               icon: const Icon(Icons.family_restroom),
-              label: const Text('Family'),
+              label: Text(l10n.familyNav),
             ),
             OutlinedButton.icon(
               onPressed: () => context.push('/free-time'),
               icon: const Icon(Icons.free_breakfast),
-              label: const Text('Free time'),
+              label: Text(l10n.freeTimeNav),
             ),
             OutlinedButton.icon(
               onPressed: () => context.push('/groups'),
               icon: const Icon(Icons.groups_outlined),
-              label: const Text('Groups'),
+              label: Text(l10n.groupsNav),
             ),
             OutlinedButton.icon(
               onPressed: () => context.push('/analytics'),
               icon: const Icon(Icons.bar_chart),
-              label: const Text('Analytics'),
+              label: Text(l10n.analyticsNav),
             ),
           ],
         ),
@@ -217,60 +223,19 @@ class _PulseBody extends StatelessWidget {
     );
   }
 
-  String _dateLabel(DateTime date) {
-    const weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
+  String _dateLabel(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat('EEEE, MMMM d', locale).format(date);
   }
 
-  String _timeLabel(DateTime date) {
-    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    final minute = date.minute.toString().padLeft(2, '0');
-
-    return '$hour:$minute $period';
+  String _clockLabel(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.jm(locale).format(date);
   }
 
-  String _dateTimeLabel(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    return '${months[date.month - 1]} ${date.day} · ${_timeLabel(date)}';
+  String _dateTimeLabel(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return '${DateFormat.MMMd(locale).format(date)} · ${_clockLabel(context, date)}';
   }
 }
 

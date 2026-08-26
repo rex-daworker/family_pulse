@@ -1,0 +1,339 @@
+{
+  "@@locale": "en",
+
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "signOut": "Sign out",
+  "notesLabel": "Notes",
+  "titleFieldLabel": "Title",
+  "titleRequiredError": "Title is required",
+  "nameRequiredError": "Name is required",
+  "labelOptional": "Label (optional)",
+  "labelHint": "e.g. Mom, Dad — helps tell parents apart",
+  "labelHintGeneric": "e.g. Mom, Dad, Grandma",
+  "yourNameLabel": "Your name",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "emailRequiredError": "Email is required",
+  "emailInvalidError": "Enter a valid email address",
+  "passwordRequiredError": "Password is required",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "notInFamilyYet": "You're not part of a family yet.",
+  "familyMemberFallback": "Family member",
+  "codeCopied": "Code copied",
+  "copyCodeTooltip": "Copy code",
+  "todayLabel": "Today",
+
+  "homeNav": "Home",
+  "calendarNav": "Calendar",
+  "familyNav": "Family",
+  "freeTimeNav": "Free time",
+  "groupsNav": "Groups",
+  "analyticsNav": "Analytics",
+  "profileNav": "Profile",
+  "settingsNav": "Settings",
+
+  "loginTitle": "FamilyPulse Login",
+  "loginButton": "Login",
+  "loginRegisterPrompt": "Don't have an account? Register here.",
+
+  "registerTitle": "Create Account",
+  "fullNameLabel": "Full Name",
+  "confirmEmailLabel": "Confirm email",
+  "confirmEmailRequiredError": "Please confirm your email",
+  "emailsDontMatchError": "Emails don't match",
+  "confirmPasswordLabel": "Confirm password",
+  "confirmPasswordRequiredError": "Please confirm your password",
+  "passwordTooShortError": "At least 6 characters",
+  "passwordsDontMatchError": "Passwords don't match",
+  "signUpButton": "Sign Up",
+  "loginPrompt": "Already have an account? Log in.",
+
+  "welcomeTagline": "Family life isn't missing another group chat.",
+  "welcomePitch": "It's missing a heartbeat. FamilyPulse turns scattered texts, forgotten pickups, and \"wait — who's free Saturday?\" into one shared rhythm: a live calendar, a real-time pulse of everyone's day, and zero double-booked soccer practice.",
+  "createAccountButton": "Create account",
+  "logInButton": "Log in",
+
+  "familyChoiceTitle": "Welcome",
+  "createFamilyButton": "Create a family",
+  "joinFamilyButton": "Join a family",
+
+  "joinFamilyTitle": "Join a family",
+  "familyCodeLabel": "Family code",
+  "familyCodeHelper": "Ask a family member for their family code.",
+  "roleLabel": "Role",
+  "fillBothFieldsError": "Please fill in both fields.",
+  "joinFamilyAction": "Join family",
+
+  "createFamilyTitle": "Create a family",
+  "familyNameLabel": "Family name",
+  "familyCreatedTitle": "Family created",
+  "shareCodeMessage": "Share this code so others can join:\n\n{familyId}",
+  "@shareCodeMessage": {
+    "description": "Shown after creating a family, with the family's join code.",
+    "placeholders": { "familyId": { "type": "String" } }
+  },
+  "continueButton": "Continue",
+  "createFamilyAction": "Create family",
+
+  "familyGroupsTitle": "Family Groups",
+  "couldNotLoadGroupsError": "Could not load groups — {error}",
+  "@couldNotLoadGroupsError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "unknownMember": "Unknown member",
+  "noGroupsYet": "No groups yet. Make one for things like \"Kids\" or \"Chores squad\" to organize who's involved in what.",
+  "newGroup": "New group",
+  "editGroup": "Edit group",
+  "deleteGroupTooltip": "Delete group",
+  "deleteGroupTitle": "Delete group?",
+  "deleteGroupContent": "\"{name}\" will be removed for everyone.",
+  "@deleteGroupContent": {
+    "description": "Confirmation body before deleting a group.",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "couldNotDeleteGroupError": "Couldn't delete group — {error}",
+  "@couldNotDeleteGroupError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "noMembersYetGroup": "No members yet.",
+  "groupNameLabel": "Group name",
+  "groupNameRequiredError": "Group name is required",
+  "membersLabel": "Members",
+  "noFamilyMembersFoundYet": "No family members found yet.",
+  "couldNotSaveGroupError": "Couldn't save group — {error}",
+  "@couldNotSaveGroupError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "freeTimeTitle": "Free Time",
+  "previousDayTooltip": "Previous day",
+  "nextDayTooltip": "Next day",
+  "minDuration30": "30 min+",
+  "minDuration60": "1 hr+",
+  "minDuration120": "2 hr+",
+  "couldNotFindMembers": "Could not find any family members.",
+  "noFreeWindow": "No window that long, free for everyone, between 7 AM and 9 PM on this day. Try a shorter minimum or another day.",
+  "freeForEveryone": "{duration} minutes, free for everyone",
+  "@freeForEveryone": {
+    "placeholders": { "duration": { "type": "int" } }
+  },
+  "scheduleButton": "Schedule",
+  "scheduleAtTitle": "Schedule at {time}",
+  "@scheduleAtTitle": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "couldNotCreateEventError": "Couldn't create event — {error}",
+  "@couldNotCreateEventError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotLoadFamilyMembersError": "Could not load family members — {error}",
+  "@couldNotLoadFamilyMembersError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotLoadYourFamilyError": "Could not load your family — {error}",
+  "@couldNotLoadYourFamilyError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotLoadFreeTimeError": "Could not load free time — {error}",
+  "@couldNotLoadFreeTimeError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "familyPulseTitle": "Family Pulse",
+  "greeting": "Hey, {name}",
+  "@greeting": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "upcomingStat": "Upcoming",
+  "todaysSchedule": "Today's schedule",
+  "nothingToday": "Nothing on the calendar today.",
+  "comingUp": "Coming up",
+  "nothingScheduledYet": "Nothing scheduled yet.",
+  "jumpTo": "Jump to",
+  "couldNotLoadPulseError": "Could not load your pulse: {error}",
+  "@couldNotLoadPulseError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "profileTitle": "Profile",
+  "editProfileButton": "Edit profile",
+  "yourRoleSubtitle": "Your role in the family",
+  "yourLabelSubtitle": "Your label",
+  "yourFamilySubtitle": "Your family",
+  "profileUpdated": "Profile updated",
+  "couldNotUpdateProfileError": "Couldn't update profile — {error}",
+  "@couldNotUpdateProfileError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "changePhotoLabel": "Change photo",
+  "takePhotoOption": "Take photo",
+  "chooseFromGalleryOption": "Choose from gallery",
+  "removePhotoOption": "Remove photo",
+  "couldNotPickPhotoError": "Couldn't open the photo picker — {error}",
+  "@couldNotPickPhotoError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "ageFieldLabel": "Age",
+  "ageInvalidError": "Enter an age between 0 and 120",
+  "genderFieldLabel": "Gender",
+  "genderNotSet": "Not set",
+  "genderFemale": "Female",
+  "genderMale": "Male",
+  "genderOther": "Other",
+  "genderPreferNotToSay": "Prefer not to say",
+  "yourAgeSubtitle": "Your age",
+  "yourGenderSubtitle": "Your gender",
+  "storageErrorCanceled": "Photo selection was canceled",
+  "storageErrorUnknown": "Couldn't upload your photo. Please try again.",
+
+  "nameFieldLabel": "Name",
+
+  "signOutConfirmTitle": "Sign out?",
+  "signOutConfirmContent": "You'll need to log back in to see your family's calendar.",
+  "couldNotSignOutError": "Could not sign out: {error}",
+  "@couldNotSignOutError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "categorySchool": "School",
+  "categoryHobby": "Hobby",
+  "categoryWork": "Work",
+  "categoryOther": "Other",
+
+  "roleParent": "Parent",
+  "roleChild": "Child",
+  "roleGuardian": "Guardian",
+  "roleOther": "Other",
+
+  "myFamilyTitle": "My Family",
+  "familyGroupsTooltip": "Family groups",
+  "membersHeader": "MEMBERS",
+  "noMembersFoundYet": "No members found yet.",
+  "couldNotLoadFamilyInfoError": "Could not load family info — {error}",
+  "@couldNotLoadFamilyInfoError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotLoadMembersError": "Could not load members — {error}",
+  "@couldNotLoadMembersError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "createdOn": "Created {date}",
+  "@createdOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "copyFamilyCodeTooltip": "Copy family code",
+  "familyCodeCopied": "Family code copied",
+  "shareCodeHint": "Share this code so others can join.",
+  "youBadge": "You",
+  "renameTooltip": "Rename",
+  "renameDialogTitle": "Rename {name}",
+  "@renameDialogTitle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "memberUpdated": "{name} updated",
+  "@memberUpdated": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "couldNotUpdateMemberError": "Couldn't update member — {error}",
+  "@couldNotUpdateMemberError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "settingsTitle": "Settings",
+  "appearanceHeader": "Appearance",
+  "systemOption": "System",
+  "lightOption": "Light",
+  "darkOption": "Dark",
+  "colorThemeLabel": "Color theme",
+  "languageLabel": "Language",
+  "languageSystemOption": "System",
+  "languageEnglishOption": "English",
+  "languageFinnishOption": "Suomi",
+  "languageSwedishOption": "Svenska",
+  "yourNameHeader": "Your name",
+  "addYourName": "Add your name",
+  "yourFamilyHeader": "Your family",
+  "familyCodeShareHelper": "Family code — share so others can join",
+  "calendarHeader": "Calendar",
+  "showEmptyDaysTitle": "Show empty days by default",
+  "showEmptyDaysSubtitle": "Applies next time you open the calendar — you can still toggle it there for a quick look.",
+  "accountHeader": "Account",
+  "nameUpdated": "Name updated",
+  "couldNotUpdateNameError": "Couldn't update name — {error}",
+  "@couldNotUpdateNameError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "familyCalendarTitle": "Family Calendar",
+  "hideEmptyDaysTooltip": "Hide empty days",
+  "showEmptyDaysTooltip": "Show empty days",
+  "myFamilyTooltip": "My family",
+  "couldNotFindFamilyRetryError": "Couldn't find your family yet — try again in a moment.",
+  "deleteEventTitle": "Delete event?",
+  "deleteEventContent": "\"{title}\" will be removed for everyone.",
+  "@deleteEventContent": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "eventDeleted": "\"{title}\" deleted",
+  "@eventDeleted": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "couldNotDeleteEventError": "Couldn't delete event — {error}",
+  "@couldNotDeleteEventError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "eventAdded": "Event added",
+  "eventUpdated": "Event updated",
+  "addEventTooltip": "Add event",
+  "noEventsYet": "No events yet — add one to plan family time.",
+  "editEventTooltip": "Edit event",
+  "deleteEventTooltip": "Delete event",
+  "newEventButton": "New event",
+  "addEventDialogTitle": "Add event",
+  "editEventDialogTitle": "Edit event",
+  "categoryLabel": "Category",
+  "eventTimeLabel": "Time: {time}",
+  "@eventTimeLabel": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "couldNotSaveEventError": "Couldn't save event — {error}",
+  "@couldNotSaveEventError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "eventsForDate": "Events for {date}",
+  "@eventsForDate": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "couldNotLoadEventsError": "Could not load events: {error}",
+  "@couldNotLoadEventsError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "openDayLabel": "Open",
+
+  "analyticsTitle": "Analytics",
+  "noEventsAnalytics": "No events yet — analytics will fill in as your family starts adding things to the calendar.",
+  "couldNotLoadAnalyticsError": "Could not load analytics — {error}",
+  "@couldNotLoadAnalyticsError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "totalEventsStat": "Total events",
+  "familyMembersStat": "Family members",
+  "next7DaysStat": "Next 7 days",
+  "busiestDayTitle": "Busiest day of the week",
+  "mostActiveTitle": "Who's added the most",
+  "noEventsLoggedYet": "No events logged yet.",
+  "byCategoryTitle": "By category",
+  "unknownContributor": "Unknown",
+
+  "authErrorWeakPassword": "Password is too weak. Use at least 6 characters.",
+  "authErrorEmailInUse": "An account already exists with this email.",
+  "authErrorUserNotFound": "No account found with this email.",
+  "authErrorWrongPassword": "Incorrect password. Please try again.",
+  "authErrorInvalidEmail": "Please enter a valid email address.",
+  "authErrorNotSignedIn": "You need to be signed in to do that.",
+  "authErrorUnknown": "Something went wrong. Please try again.",
+  "familyErrorNotFound": "Family not found. Check the code and try again."
+}

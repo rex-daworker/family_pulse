@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
 // The very first thing a signed-out visitor sees — sells the app in one
 // screen, then gates everything else behind Sign up / Log in. The router's
 // redirect logic (main.dart) sends any unauthenticated request here, so
@@ -10,6 +12,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -39,6 +42,8 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
+              // "FamilyPulse" is the app's brand name, not translated —
+              // like any product name, it stays the same in every language.
               Text(
                 'FamilyPulse',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -49,7 +54,7 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               Text(
-                "Family life isn't missing another group chat.",
+                l10n.welcomeTagline,
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
@@ -59,11 +64,7 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               Text(
-                "It's missing a heartbeat. FamilyPulse turns scattered "
-                'texts, forgotten pickups, and "wait — who\'s free '
-                'Saturday?" into one shared rhythm: a live calendar, a '
-                "real-time pulse of everyone's day, and zero double-booked "
-                'soccer practice.',
+                l10n.welcomePitch,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey.shade700,
@@ -83,7 +84,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Create account'),
+                  child: Text(l10n.createAccountButton),
                 ),
               ),
 
@@ -96,7 +97,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Log in'),
+                  child: Text(l10n.logInButton),
                 ),
               ),
 

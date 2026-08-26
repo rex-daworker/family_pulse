@@ -7,6 +7,9 @@ class FamilyMember {
     required this.email,
     required this.role,
     this.label = '',
+    this.photoUrl,
+    this.age,
+    this.gender,
   });
 
   final String userId;
@@ -19,6 +22,13 @@ class FamilyMember {
   // since the role alone reads as identical for both of them.
   final String label;
 
+  // Everything below is optional profile detail, layered on top of the
+  // original name/role/label shape — null just means "not set yet", not
+  // "broken data" for members who joined before this existed.
+  final String? photoUrl;
+  final int? age;
+  final String? gender;
+
   factory FamilyMember.fromMap(Map<String, dynamic> data) {
     return FamilyMember(
       userId: data['user_id'] ?? '',
@@ -26,6 +36,9 @@ class FamilyMember {
       email: data['email'] ?? '',
       role: data['role'] ?? '',
       label: data['label'] ?? '',
+      photoUrl: data['photo_url'] as String?,
+      age: data['age'] as int?,
+      gender: data['gender'] as String?,
     );
   }
 }

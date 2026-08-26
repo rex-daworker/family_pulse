@@ -4,6 +4,7 @@ import '../models/family_member_model.dart';
 import '../models/family_model.dart';
 import '../services/auth_service.dart';
 import '../services/family_service.dart';
+import '../services/storage_service.dart';
 
 // 1. Expose the AuthService instance
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -13,6 +14,11 @@ final authServiceProvider = Provider<AuthService>((ref) {
 // 2. Expose the FamilyService instance
 final familyServiceProvider = Provider<FamilyService>((ref) {
   return FamilyService();
+});
+
+// 2b. Expose the StorageService instance — profile photo uploads.
+final storageServiceProvider = Provider<StorageService>((ref) {
+  return StorageService();
 });
 
 // 3. Stream Provider tracking whether a user is logged in or out

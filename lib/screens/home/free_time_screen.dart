@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 
@@ -49,11 +51,12 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final familyIdAsync = ref.watch(currentFamilyIdProvider);
     final membersAsync = ref.watch(familyMembersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Free Time')),
+      appBar: AppBar(title: Text(l10n.freeTimeTitle)),
       body: Column(
         children: [
           Padding(
@@ -64,19 +67,19 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
                 IconButton(
                   onPressed: () => _shiftDay(-1),
                   icon: const Icon(Icons.chevron_left),
-                  tooltip: 'Previous day',
+                  tooltip: l10n.previousDayTooltip,
                 ),
                 TextButton(
                   onPressed: _pickDate,
                   child: Text(
-                    _dateLabel(_selectedDate),
+                    _dateLabel(context, _selectedDate),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 IconButton(
                   onPressed: () => _shiftDay(1),
                   icon: const Icon(Icons.chevron_right),
-                  tooltip: 'Next day',
+                  tooltip: l10n.nextDayTooltip,
                 ),
               ],
             ),
@@ -85,10 +88,10 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 30, label: Text('30 min+')),
-                ButtonSegment(value: 60, label: Text('1 hr+')),
-                ButtonSegment(value: 120, label: Text('2 hr+')),
+              segments: [
+                ButtonSegment(value: 30, label: Text(l10n.minDuration30)),
+                ButtonSegment(value: 60, label: Text(l10n.minDuration60)),
+                ButtonSegment(value: 120, label: Text(l10n.minDuration120)),
               ],
               selected: {_minDurationMinutes},
               onSelectionChanged: (selection) {
@@ -103,9 +106,7 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
             child: familyIdAsync.when(
               data: (familyId) {
                 if (familyId == null) {
-                  return const Center(
-                    child: Text("You're not part of a family yet."),
-                  );
+                  return Center(child: Text(l10n.notInFamilyYet));
                 }
                 return membersAsync.when(
                   data: (members) {
@@ -114,9 +115,7 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
                       // Shouldn't happen in practice (you're always a member
                       // of your own family), but guard rather than show a
                       // confusing empty state.
-                      return const Center(
-                        child: Text('Could not find any family members.'),
-                      );
+                      return Center(child: Text(l10n.couldNotFindMembers));
                     }
                     return _FreeSlotsList(
                       familyId: familyId,
@@ -128,13 +127,16 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, stackTrace) => Center(
-                    child: Text('Could not load family members — $error'),
+                    child: Text(
+                      l10n.couldNotLoadFamilyMembersError(error.toString()),
+                    ),
                   ),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) =>
-                  Center(child: Text('Could not load your family — $error')),
+              error: (error, stackTrace) => Center(
+                child: Text(l10n.couldNotLoadYourFamilyError(error.toString())),
+              ),
             ),
           ),
         ],
@@ -142,29 +144,16 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
     );
   }
 
-  String _dateLabel(DateTime date) {
+  String _dateLabel(BuildContext context, DateTime date) {
     final today = DateTime.now();
     final isToday =
         date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
-    if (isToday) return 'Today';
+    if (isToday) return AppLocalizations.of(context).todayLabel;
 
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}';
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.MMMd(locale).format(date);
   }
 }
 
@@ -246,6 +235,7 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _future,
       builder: (context, snapshot) {
@@ -254,7 +244,7 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
         }
         if (snapshot.hasError) {
           return Center(
-            child: Text('Could not load free time — ${snapshot.error}'),
+            child: Text(l10n.couldNotLoadFreeTimeError('${snapshot.error}')),
           );
         }
 
@@ -264,8 +254,7 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'No window that long, free for everyone, between 7 AM and '
-                '9 PM on this day. Try a shorter minimum or another day.',
+                l10n.noFreeWindow,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -285,11 +274,13 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
             return Card(
               child: ListTile(
                 leading: const Icon(Icons.event_available),
-                title: Text('${_timeLabel(start)} – ${_timeLabel(end)}'),
-                subtitle: Text('$duration minutes, free for everyone'),
+                title: Text(
+                  '${_timeLabel(context, start)} – ${_timeLabel(context, end)}',
+                ),
+                subtitle: Text(l10n.freeForEveryone(duration)),
                 trailing: FilledButton.tonal(
                   onPressed: () => _scheduleHere(start),
-                  child: const Text('Schedule'),
+                  child: Text(l10n.scheduleButton),
                 ),
               ),
             );
@@ -311,11 +302,9 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
     if (created == true) _refresh();
   }
 
-  String _timeLabel(DateTime date) {
-    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute $period';
+  String _timeLabel(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.jm(locale).format(date);
   }
 }
 
@@ -357,9 +346,10 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      setState(() => _titleError = 'Title is required');
+      setState(() => _titleError = l10n.titleRequiredError);
       return;
     }
 
@@ -369,7 +359,7 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
       final user = ref.read(authStateProvider).value;
       final userName = (user?.displayName?.trim().isNotEmpty ?? false)
           ? user!.displayName!.trim()
-          : (user?.email ?? 'Family member');
+          : (user?.email ?? l10n.familyMemberFallback);
 
       await ref
           .read(eventServiceProvider)
@@ -389,7 +379,7 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Couldn't create event — $e"),
+            content: Text(l10n.couldNotCreateEventError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -399,8 +389,12 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toString();
     return AlertDialog(
-      title: Text('Schedule at ${_timeLabel(widget.startTime)}'),
+      title: Text(
+        l10n.scheduleAtTitle(DateFormat.jm(locale).format(widget.startTime)),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -409,7 +403,7 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
             autofocus: true,
             maxLength: 60,
             decoration: InputDecoration(
-              labelText: 'Title',
+              labelText: l10n.titleFieldLabel,
               errorText: _titleError,
               isDense: true,
             ),
@@ -420,8 +414,8 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Notes',
+            decoration: InputDecoration(
+              labelText: l10n.notesLabel,
               isDense: true,
               alignLabelWithHint: true,
             ),
@@ -434,7 +428,7 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _isSaving ? null : _save,
@@ -444,16 +438,9 @@ class _QuickEventDialogState extends ConsumerState<_QuickEventDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );
-  }
-
-  String _timeLabel(DateTime date) {
-    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute $period';
   }
 }

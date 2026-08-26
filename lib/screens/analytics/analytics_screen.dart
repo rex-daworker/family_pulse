@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/event_categories.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/event_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
@@ -17,21 +19,21 @@ class AnalyticsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final eventsAsync = ref.watch(familyEventsProvider);
     final membersAsync = ref.watch(familyMembersProvider);
     final memberCount = membersAsync.value?.length ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Analytics')),
+      appBar: AppBar(title: Text(l10n.analyticsTitle)),
       body: eventsAsync.when(
         data: (events) {
           if (events.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No events yet — analytics will fill in as your family '
-                  'starts adding things to the calendar.',
+                  l10n.noEventsAnalytics,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -40,8 +42,9 @@ class AnalyticsScreen extends ConsumerWidget {
           return _AnalyticsBody(events: events, memberCount: memberCount);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            Center(child: Text('Could not load analytics — $error')),
+        error: (error, stackTrace) => Center(
+          child: Text(l10n.couldNotLoadAnalyticsError(error.toString())),
+        ),
       ),
     );
   }
@@ -53,18 +56,20 @@ class _AnalyticsBody extends StatelessWidget {
   final List<EventModel> events;
   final int memberCount;
 
-  static const _weekdayLabels = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
-  ];
+  // Locale-aware 3-letter weekday abbreviations (Mon..Sun), anchored to
+  // 1970-01-05, a known Monday, instead of a hardcoded English array.
+  List<String> _weekdayLabels(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    return List<String>.generate(7, (index) {
+      final day = DateTime(1970, 1, 5 + index);
+      return DateFormat('EEE', locale).format(day);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final weekdayLabels = _weekdayLabels(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final nextWeekEnd = today.add(const Duration(days: 7));
@@ -84,7 +89,9 @@ class _AnalyticsBody extends StatelessWidget {
     // already stored on each event (no member lookup needed).
     final Map<String, int> byContributor = {};
     for (final event in events) {
-      final name = event.userName.isNotEmpty ? event.userName : 'Unknown';
+      final name = event.userName.isNotEmpty
+          ? event.userName
+          : l10n.unknownContributor;
       byContributor[name] = (byContributor[name] ?? 0) + 1;
     }
     final contributors = byContributor.entries.toList()
@@ -113,7 +120,7 @@ class _AnalyticsBody extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.event_note,
-                label: 'Total events',
+                label: l10n.totalEventsStat,
                 value: '${events.length}',
               ),
             ),
@@ -121,7 +128,7 @@ class _AnalyticsBody extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.groups,
-                label: 'Family members',
+                label: l10n.familyMembersStat,
                 value: '$memberCount',
               ),
             ),
@@ -129,7 +136,7 @@ class _AnalyticsBody extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.upcoming,
-                label: 'Next 7 days',
+                label: l10n.next7DaysStat,
                 value: '$upcomingWeekCount',
               ),
             ),
@@ -137,11 +144,11 @@ class _AnalyticsBody extends StatelessWidget {
         ),
 
         const SizedBox(height: 24),
-        const _SectionTitle('Busiest day of the week'),
+        _SectionTitle(l10n.busiestDayTitle),
         const SizedBox(height: 8),
         ...List.generate(7, (index) {
           return _BarRow(
-            label: _weekdayLabels[index],
+            label: weekdayLabels[index],
             count: weekdayCounts[index],
             fraction: maxWeekdayCount == 0
                 ? 0
@@ -151,10 +158,10 @@ class _AnalyticsBody extends StatelessWidget {
         }),
 
         const SizedBox(height: 24),
-        const _SectionTitle("Who's added the most"),
+        _SectionTitle(l10n.mostActiveTitle),
         const SizedBox(height: 8),
         if (contributors.isEmpty)
-          const Text('No events logged yet.')
+          Text(l10n.noEventsLoggedYet)
         else
           ...contributors.map(
             (entry) => _BarRow(
@@ -166,10 +173,10 @@ class _AnalyticsBody extends StatelessWidget {
           ),
 
         const SizedBox(height: 24),
-        const _SectionTitle('By category'),
+        _SectionTitle(l10n.byCategoryTitle),
         const SizedBox(height: 8),
         ...kEventCategories.map((category) {
-          final meta = categoryMeta(category);
+          final meta = categoryMeta(context, category);
           final count = byCategory[category] ?? 0;
           return _BarRow(
             label: meta.label,

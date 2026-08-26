@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 /// Central place for the family-role vocabulary. Only 'parent' unlocks
 /// parent-only actions (renaming other members, managing groups later),
 /// so adding a role here does NOT by itself grant those permissions —
 /// see firestore.rules and FamilyScreen's `isParentRole` checks.
+///
+/// These are the language-neutral keys stored in Firestore — never
+/// translate the keys themselves, only what roleDisplayName() shows for
+/// them.
 const List<String> kFamilyRoles = ['parent', 'child', 'guardian', 'other'];
 
 bool isParentRole(String role) => role.toLowerCase() == 'parent';
 
-String roleDisplayName(String role) {
+/// Needs a BuildContext (rather than being a pure lookup) so the label
+/// comes back in whatever language the user has picked in Settings.
+String roleDisplayName(BuildContext context, String role) {
+  final l10n = AppLocalizations.of(context);
   switch (role.toLowerCase()) {
     case 'parent':
-      return 'Parent';
+      return l10n.roleParent;
     case 'child':
-      return 'Child';
+      return l10n.roleChild;
     case 'guardian':
-      return 'Guardian';
+      return l10n.roleGuardian;
     default:
-      return 'Other';
+      return l10n.roleOther;
   }
 }
 
@@ -38,7 +47,7 @@ IconData roleIcon(String role) {
 /// when they've set one, falling back to their role. This is what makes two
 /// parents on the same family distinguishable instead of both just reading
 /// "Parent".
-String memberSubtitle(String role, String label) {
+String memberSubtitle(BuildContext context, String role, String label) {
   final trimmed = label.trim();
-  return trimmed.isNotEmpty ? trimmed : roleDisplayName(role);
+  return trimmed.isNotEmpty ? trimmed : roleDisplayName(context, role);
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 /// Shared "edit a name + optional label" dialog — used for editing your own
 /// profile, editing another member's info (parents only), and used to be
 /// three near-identical copies of this same form. Owns its own controllers
@@ -48,9 +50,10 @@ class _NameLabelDialogState extends State<NameLabelDialog> {
   }
 
   void _save() {
+    final l10n = AppLocalizations.of(context);
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'Name is required');
+      setState(() => _nameError = l10n.nameRequiredError);
       return;
     }
     Navigator.of(
@@ -60,6 +63,7 @@ class _NameLabelDialogState extends State<NameLabelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(widget.title),
       content: Column(
@@ -69,7 +73,7 @@ class _NameLabelDialogState extends State<NameLabelDialog> {
             controller: _nameController,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: 'Name',
+              labelText: l10n.nameFieldLabel,
               errorText: _nameError,
             ),
             onChanged: (_) {
@@ -81,9 +85,9 @@ class _NameLabelDialogState extends State<NameLabelDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label (optional)',
-                hintText: 'e.g. Mom, Dad, Grandma',
+              decoration: InputDecoration(
+                labelText: l10n.labelOptional,
+                hintText: l10n.labelHintGeneric,
               ),
               onSubmitted: (_) => _save(),
             ),
@@ -93,9 +97,9 @@ class _NameLabelDialogState extends State<NameLabelDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
+        FilledButton(onPressed: _save, child: Text(l10n.save)),
       ],
     );
   }

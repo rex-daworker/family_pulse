@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/error_messages.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class CreateFamilyScreen extends ConsumerStatefulWidget {
@@ -26,12 +28,13 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
   }
 
   Future<void> _createFamily() async {
+    final l10n = AppLocalizations.of(context);
     final familyName = _familyNameController.text.trim();
     final yourName = _yourNameController.text.trim();
     if (familyName.isEmpty || yourName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in both fields.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.fillBothFieldsError)));
       return;
     }
 
@@ -59,23 +62,21 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('Family created'),
-            content: SelectableText(
-              'Share this code so others can join:\n\n$familyId',
-            ),
+            title: Text(l10n.familyCreatedTitle),
+            content: SelectableText(l10n.shareCodeMessage(familyId)),
             actions: [
               TextButton(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: familyId));
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(const SnackBar(content: Text('Code copied')));
+                  ).showSnackBar(SnackBar(content: Text(l10n.codeCopied)));
                 },
-                child: const Text('Copy code'),
+                child: Text(l10n.copyCodeTooltip),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Continue'),
+                child: Text(l10n.continueButton),
               ),
             ],
           ),
@@ -90,9 +91,9 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
       if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizedErrorMessage(context, e))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -101,27 +102,28 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Create a family')),
+      appBar: AppBar(title: Text(l10n.createFamilyTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _familyNameController,
-              decoration: const InputDecoration(labelText: 'Family name'),
+              decoration: InputDecoration(labelText: l10n.familyNameLabel),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _yourNameController,
-              decoration: const InputDecoration(labelText: 'Your name'),
+              decoration: InputDecoration(labelText: l10n.yourNameLabel),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label (optional)',
-                hintText: 'e.g. Mom, Dad — helps tell parents apart',
+              decoration: InputDecoration(
+                labelText: l10n.labelOptional,
+                hintText: l10n.labelHint,
               ),
             ),
             const SizedBox(height: 24),
@@ -129,7 +131,7 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _createFamily,
-                    child: const Text('Create family'),
+                    child: Text(l10n.createFamilyAction),
                   ),
           ],
         ),

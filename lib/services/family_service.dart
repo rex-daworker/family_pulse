@@ -3,6 +3,18 @@ import '../models/family_group_model.dart';
 import '../models/family_member_model.dart';
 import '../models/family_model.dart';
 
+/// Thrown for family-lookup failures the UI should show a message for.
+/// `code` is a stable, language-neutral identifier — never shown to the
+/// user directly. Screens translate it via `localizedErrorMessage()`
+/// (core/error_messages.dart).
+class FamilyError implements Exception {
+  const FamilyError(this.code);
+  final String code;
+
+  @override
+  String toString() => 'FamilyError($code)';
+}
+
 class FamilyService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -45,7 +57,7 @@ class FamilyService {
         .get();
 
     if (!familyDoc.exists) {
-      throw Exception('Family not found. Check the code and try again.');
+      throw const FamilyError('not-found');
     }
 
     await _firestore
@@ -77,6 +89,37 @@ class FamilyService {
         .collection('users')
         .doc(userId)
         .update({'name': name, 'label': label});
+  }
+
+  // 2c. The signed-in user editing their own full profile — name, label,
+  // and the newer optional details (photo, age, gender). Kept separate
+  // from updateMemberInfo() above: that one is also used by a *parent
+  // renaming someone else*, which the security rules restrict to
+  // name/label only, so it can't safely grow extra fields. This one only
+  // ever targets the caller's own membership doc (rules: allow update if
+  // request.auth.uid == userId, with no field restriction), so nothing
+  // stops it from touching the rest of the profile.
+  Future<void> updateOwnProfile({
+    required String familyId,
+    required String userId,
+    required String name,
+    required String label,
+    String? photoUrl,
+    int? age,
+    String? gender,
+  }) async {
+    await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('users')
+        .doc(userId)
+        .update({
+          'name': name,
+          'label': label,
+          'photo_url': photoUrl,
+          'age': age,
+          'gender': gender,
+        });
   }
 
   // 3. Find which family a user belongs to by their User ID.

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/error_messages.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -56,40 +59,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String? _validateName(String? value) {
-    if ((value?.trim() ?? '').isEmpty) return 'Name is required';
+    if ((value?.trim() ?? '').isEmpty) {
+      return AppLocalizations.of(context).nameRequiredError;
+    }
     return null;
   }
 
   String? _validateEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
     final email = value?.trim() ?? '';
-    if (email.isEmpty) return 'Email is required';
+    if (email.isEmpty) return l10n.emailRequiredError;
     if (!email.contains('@') || !email.contains('.')) {
-      return 'Enter a valid email address';
+      return l10n.emailInvalidError;
     }
     return null;
   }
 
   String? _validateConfirmEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
     final confirmEmail = value?.trim().toLowerCase() ?? '';
-    if (confirmEmail.isEmpty) return 'Please confirm your email';
+    if (confirmEmail.isEmpty) return l10n.confirmEmailRequiredError;
     if (confirmEmail != _emailController.text.trim().toLowerCase()) {
-      return 'Emails don\'t match';
+      return l10n.emailsDontMatchError;
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
+    final l10n = AppLocalizations.of(context);
     final password = value ?? '';
-    if (password.isEmpty) return 'Password is required';
-    if (password.length < 6) return 'At least 6 characters';
+    if (password.isEmpty) return l10n.passwordRequiredError;
+    if (password.length < 6) return l10n.passwordTooShortError;
     return null;
   }
 
   String? _validateConfirmPassword(String? value) {
+    final l10n = AppLocalizations.of(context);
     final confirmPassword = value ?? '';
-    if (confirmPassword.isEmpty) return 'Please confirm your password';
+    if (confirmPassword.isEmpty) return l10n.confirmPasswordRequiredError;
     if (confirmPassword != _passwordController.text) {
-      return 'Passwords don\'t match';
+      return l10n.passwordsDontMatchError;
     }
     return null;
   }
@@ -112,7 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(localizedErrorMessage(context, e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -124,8 +133,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(title: Text(l10n.registerTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -134,14 +144,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Full Name'),
+                decoration: InputDecoration(labelText: l10n.fullNameLabel),
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: _validateName,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: l10n.emailLabel),
                 keyboardType: TextInputType.emailAddress,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: _validateEmail,
@@ -149,7 +159,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _confirmEmailController,
-                decoration: const InputDecoration(labelText: 'Confirm email'),
+                decoration: InputDecoration(labelText: l10n.confirmEmailLabel),
                 keyboardType: TextInputType.emailAddress,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: _validateConfirmEmail,
@@ -158,7 +168,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               TextFormField(
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.passwordLabel,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -166,8 +176,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : Icons.visibility,
                     ),
                     tooltip: _obscurePassword
-                        ? 'Show password'
-                        : 'Hide password',
+                        ? l10n.showPassword
+                        : l10n.hidePassword,
                     onPressed: () {
                       setState(() => _obscurePassword = !_obscurePassword);
                     },
@@ -181,7 +191,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               TextFormField(
                 controller: _confirmPasswordController,
                 decoration: InputDecoration(
-                  labelText: 'Confirm password',
+                  labelText: l10n.confirmPasswordLabel,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirmPassword
@@ -189,8 +199,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : Icons.visibility,
                     ),
                     tooltip: _obscureConfirmPassword
-                        ? 'Show password'
-                        : 'Hide password',
+                        ? l10n.showPassword
+                        : l10n.hidePassword,
                     onPressed: () {
                       setState(
                         () =>
@@ -208,11 +218,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _register,
-                      child: const Text('Sign Up'),
+                      child: Text(l10n.signUpButton),
                     ),
               TextButton(
                 onPressed: () => context.push('/login'),
-                child: const Text('Already have an account? Log in.'),
+                child: Text(l10n.loginPrompt),
               ),
             ],
           ),
