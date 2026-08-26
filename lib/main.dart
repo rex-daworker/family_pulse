@@ -7,20 +7,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/event_categories.dart';
 import 'firebase_options.dart';
 import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
 import 'providers/settings_provider.dart';
+import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'screens/family/create_family_screen.dart';
 import 'screens/family/family_choice_screen.dart';
+import 'screens/family/family_screen.dart';
+import 'screens/family/groups_screen.dart';
 import 'screens/family/join_family_screen.dart';
 import 'screens/home/free_time_screen.dart';
 import 'screens/home/pulse_screen.dart';
+import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'widgets/app_drawer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -170,6 +176,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/free-time',
         builder: (context, state) => const FreeTimeScreen(),
+      ),
+      GoRoute(
+        path: '/family',
+        builder: (context, state) => const FamilyScreen(),
+      ),
+      GoRoute(
+        path: '/groups',
+        builder: (context, state) => const GroupsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics',
+        builder: (context, state) => const AnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
@@ -415,7 +437,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
         event: event,
         initialTime: initialTime,
         onError: _showErrorSnackBar,
-        onSave: (title, description, time) async {
+        onSave: (title, description, time, category) async {
           final familyId = ref.read(currentFamilyIdProvider).value;
           if (familyId == null) {
             throw Exception(
@@ -438,7 +460,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                 .createEvent(
                   familyId: familyId,
                   title: title,
-                  category: 'other',
+                  category: category,
                   startTime: eventDate,
                   endTime: endTime,
                   description: description,
@@ -453,6 +475,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   updates: {
                     'title': title,
                     'description': description,
+                    'category': category,
                     'date': Timestamp.fromDate(eventDate),
                     'start_time': Timestamp.fromDate(eventDate),
                     'end_time': Timestamp.fromDate(endTime),
@@ -503,6 +526,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     final dayEvents = _eventsForSelectedDay();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Family Calendar'),
 
@@ -683,7 +707,13 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
+                                // Colored by the day's first event's category
+                                // so the month grid hints at what kind of day
+                                // it is before you even tap in.
+                                color: categoryMeta(
+                                  (_events[eventKeyFor(day)]?.first.category) ??
+                                      'other',
+                                ).color,
                                 shape: BoxShape.circle,
                               ),
                             )
@@ -747,14 +777,15 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                     const Text('No events yet — add one to plan family time.')
                   else
                     ...dayEvents.map((event) {
+                      final meta = categoryMeta(event.category);
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
 
                           subtitle: Text(
                             event.description.isEmpty
-                                ? 'No notes'
-                                : event.description,
+                                ? meta.label
+                                : '${meta.label} · ${event.description}',
                           ),
 
                           trailing: Row(
@@ -777,9 +808,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             ],
                           ),
 
-                          leading: Icon(
-                            Icons.event_available,
-                            color: Theme.of(context).colorScheme.primary,
+                          leading: CircleAvatar(
+                            backgroundColor: meta.color.withValues(alpha: 0.15),
+                            child: Icon(meta.icon, color: meta.color),
                           ),
                         ),
                       );
@@ -830,6 +861,7 @@ class _EventEditorDialog extends StatefulWidget {
     String title,
     String description,
     TimeOfDay time,
+    String category,
   )
   onSave;
 
@@ -843,6 +875,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late TimeOfDay _selectedTime;
+  late String _selectedCategory;
 
   String? _titleError;
   bool _isSaving = false;
@@ -855,6 +888,9 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
       text: widget.event?.description ?? '',
     );
     _selectedTime = widget.initialTime;
+    _selectedCategory = kEventCategories.contains(widget.event?.category)
+        ? widget.event!.category
+        : 'other';
   }
 
   @override
@@ -898,6 +934,7 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
         title,
         _descriptionController.text.trim(),
         _selectedTime,
+        _selectedCategory,
       );
 
       if (mounted) {
@@ -953,6 +990,38 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
               minLines: 1,
               maxLines: 3,
               maxLength: 300,
+            ),
+
+            const SizedBox(height: 12),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Category',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              children: kEventCategories.map((category) {
+                final meta = categoryMeta(category);
+                final selected = _selectedCategory == category;
+                return ChoiceChip(
+                  avatar: Icon(
+                    meta.icon,
+                    size: 18,
+                    color: selected ? Colors.white : meta.color,
+                  ),
+                  label: Text(meta.label),
+                  selected: selected,
+                  selectedColor: meta.color,
+                  labelStyle: TextStyle(color: selected ? Colors.white : null),
+                  onSelected: (_) {
+                    setState(() => _selectedCategory = category);
+                  },
+                );
+              }).toList(),
             ),
 
             const SizedBox(height: 12),

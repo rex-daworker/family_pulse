@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../core/sign_out.dart';
+import '../../models/family_member_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../widgets/name_label_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -15,6 +17,8 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final showEmptyDays = ref.watch(showEmptyDaysByDefaultProvider);
     final familyAsync = ref.watch(currentFamilyProvider);
+    final membersAsync = ref.watch(familyMembersProvider);
+    final ownMember = findMemberById(membersAsync.value ?? const [], user?.uid);
 
     final displayName = (user?.displayName?.trim().isNotEmpty ?? false)
         ? user!.displayName!.trim()
@@ -59,8 +63,12 @@ class SettingsScreen extends ConsumerWidget {
           const _SectionHeader('Your name'),
           ListTile(
             title: Text(displayName),
+            subtitle: ownMember != null && ownMember.label.isNotEmpty
+                ? Text(ownMember.label)
+                : null,
             trailing: const Icon(Icons.edit),
-            onTap: () => _editName(context, ref, user?.displayName ?? ''),
+            onTap: () =>
+                _editProfile(context, ref, user?.displayName ?? '', ownMember),
           ),
 
           const Divider(height: 32),
@@ -129,7 +137,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign out'),
-            onTap: () => _signOut(context, ref),
+            onTap: () => confirmAndSignOut(context, ref),
           ),
 
           const SizedBox(height: 24),
@@ -138,20 +146,45 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _editName(
+  // Updates BOTH the Firebase Auth displayName (used for the auth session
+  // and as a fallback greeting elsewhere) and the Firestore family member
+  // doc's name/label (used everywhere the Family roster, event history,
+  // and "who added this" labels actually read from). These used to only
+  // update Auth, silently leaving your Family-screen entry stale — this is
+  // the interconnection fix for that.
+  Future<void> _editProfile(
     BuildContext context,
     WidgetRef ref,
     String currentName,
+    FamilyMember? ownMember,
   ) async {
-    final newName = await showDialog<String>(
+    final result = await showDialog<({String name, String label})>(
       context: context,
-      builder: (dialogContext) => _EditNameDialog(initialName: currentName),
+      builder: (dialogContext) => NameLabelDialog(
+        title: 'Your name',
+        initialName: currentName,
+        initialLabel: ownMember?.label ?? '',
+      ),
     );
 
-    if (newName == null || !context.mounted) return;
+    if (result == null || !context.mounted) return;
 
     try {
-      await ref.read(authServiceProvider).updateDisplayName(newName);
+      await ref.read(authServiceProvider).updateDisplayName(result.name);
+
+      final familyId = ref.read(currentFamilyIdProvider).value;
+      final user = ref.read(authStateProvider).value;
+      if (familyId != null && user != null) {
+        await ref
+            .read(familyServiceProvider)
+            .updateMemberInfo(
+              familyId: familyId,
+              userId: user.uid,
+              name: result.name,
+              label: result.label,
+            );
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -165,25 +198,6 @@ class SettingsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Couldn't update name — $e"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _confirmSignOut(context);
-    if (!confirmed || !context.mounted) return;
-
-    try {
-      await ref.read(authServiceProvider).signOut();
-      if (context.mounted) context.go('/welcome');
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not sign out: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -210,31 +224,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-// Same "let the user confirm before signing out" pattern used on Pulse and
-// Family-Choice — three sign-out entry points now, all consistent.
-Future<bool> _confirmSignOut(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Sign out?'),
-      content: const Text(
-        "You'll need to log back in to see your family's calendar.",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Sign out'),
-        ),
-      ],
-    ),
-  );
-  return confirmed ?? false;
-}
-
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.title);
 
@@ -251,68 +240,6 @@ class _SectionHeader extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
-}
-
-// Owns its own TextEditingController (created/disposed by the framework via
-// initState/dispose) rather than one built by the caller and disposed
-// after showDialog returns — same fix as the event editor dialog, applied
-// here from the start instead of as a bug-fix later.
-class _EditNameDialog extends StatefulWidget {
-  const _EditNameDialog({required this.initialName});
-
-  final String initialName;
-
-  @override
-  State<_EditNameDialog> createState() => _EditNameDialogState();
-}
-
-class _EditNameDialogState extends State<_EditNameDialog> {
-  late final TextEditingController _controller;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialName);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) {
-      setState(() => _error = 'Name is required');
-      return;
-    }
-    Navigator.of(context).pop(value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Your name'),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(labelText: 'Name', errorText: _error),
-        onChanged: (_) {
-          if (_error != null) setState(() => _error = null);
-        },
-        onSubmitted: (_) => _save(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
-      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/family_group_model.dart';
 import '../models/family_member_model.dart';
 import '../models/family_model.dart';
 
@@ -11,6 +12,7 @@ class FamilyService {
     required String userId,
     required String userName,
     required String userEmail,
+    String label = '',
   }) async {
     final familyDocRef = await _firestore.collection('families').add({
       'name': familyName,
@@ -22,6 +24,7 @@ class FamilyService {
       'name': userName,
       'role': 'parent',
       'email': userEmail,
+      'label': label,
     });
 
     return familyDocRef.id;
@@ -34,6 +37,7 @@ class FamilyService {
     required String userName,
     required String userEmail,
     required String role,
+    String label = '',
   }) async {
     final familyDoc = await _firestore
         .collection('families')
@@ -54,7 +58,25 @@ class FamilyService {
           'name': userName,
           'role': role,
           'email': userEmail,
+          'label': label,
         });
+  }
+
+  // 2b. A parent renaming another member (or updating their label). Scoped
+  // to exactly these two fields — matches the firestore.rules restriction
+  // that a non-self update may only touch name/label, never role or email.
+  Future<void> updateMemberInfo({
+    required String familyId,
+    required String userId,
+    required String name,
+    required String label,
+  }) async {
+    await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('users')
+        .doc(userId)
+        .update({'name': name, 'label': label});
   }
 
   // 3. Find which family a user belongs to by their User ID.
@@ -99,5 +121,66 @@ class FamilyService {
               .map((doc) => FamilyMember.fromMap(doc.data()))
               .toList(),
         );
+  }
+
+  // 6. Sub-groups within a family (e.g. "Kids", "Chores squad") — just a
+  // name plus a list of member user IDs. Any family member can create or
+  // edit one, same permissiveness as events; nothing in the roadmap called
+  // for group-specific permissions beyond "you're in the family."
+  Future<String> createGroup({
+    required String familyId,
+    required String name,
+    required List<String> memberIds,
+  }) async {
+    final doc = await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('groups')
+        .add({
+          'name': name,
+          'member_ids': memberIds,
+          'created_at': FieldValue.serverTimestamp(),
+        });
+    return doc.id;
+  }
+
+  Stream<List<FamilyGroupModel>> getGroups(String familyId) {
+    return _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('groups')
+        .orderBy('created_at')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => FamilyGroupModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  Future<void> updateGroup({
+    required String familyId,
+    required String groupId,
+    required String name,
+    required List<String> memberIds,
+  }) async {
+    await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('groups')
+        .doc(groupId)
+        .update({'name': name, 'member_ids': memberIds});
+  }
+
+  Future<void> deleteGroup({
+    required String familyId,
+    required String groupId,
+  }) async {
+    await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('groups')
+        .doc(groupId)
+        .delete();
   }
 }

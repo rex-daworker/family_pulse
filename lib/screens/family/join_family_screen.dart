@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/family_roles.dart';
 import '../../providers/auth_provider.dart';
 
 class JoinFamilyScreen extends ConsumerStatefulWidget {
@@ -13,6 +14,7 @@ class JoinFamilyScreen extends ConsumerStatefulWidget {
 class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   final _familyIdController = TextEditingController();
   final _yourNameController = TextEditingController();
+  final _labelController = TextEditingController();
   String _selectedRole = 'parent';
   bool _isLoading = false;
 
@@ -20,6 +22,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   void dispose() {
     _familyIdController.dispose();
     _yourNameController.dispose();
+    _labelController.dispose();
     super.dispose();
   }
 
@@ -44,6 +47,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             userName: yourName,
             userEmail: user.email ?? '',
             role: _selectedRole,
+            label: _labelController.text.trim(),
           );
       ref.invalidate(currentFamilyIdProvider);
       await ref.read(currentFamilyIdProvider.future);
@@ -83,13 +87,25 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             DropdownButtonFormField<String>(
               initialValue: _selectedRole,
               decoration: const InputDecoration(labelText: 'Role'),
-              items: const [
-                DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                DropdownMenuItem(value: 'child', child: Text('Child')),
-              ],
+              items: kFamilyRoles
+                  .map(
+                    (role) => DropdownMenuItem(
+                      value: role,
+                      child: Text(roleDisplayName(role)),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) setState(() => _selectedRole = value);
               },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _labelController,
+              decoration: const InputDecoration(
+                labelText: 'Label (optional)',
+                hintText: 'e.g. Mom, Dad — helps tell parents apart',
+              ),
             ),
             const SizedBox(height: 24),
             _isLoading

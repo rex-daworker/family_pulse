@@ -14,12 +14,14 @@ class CreateFamilyScreen extends ConsumerStatefulWidget {
 class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
   final _familyNameController = TextEditingController();
   final _yourNameController = TextEditingController();
+  final _labelController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _familyNameController.dispose();
     _yourNameController.dispose();
+    _labelController.dispose();
     super.dispose();
   }
 
@@ -43,6 +45,7 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             userId: user.uid,
             userName: yourName,
             userEmail: user.email ?? '',
+            label: _labelController.text.trim(),
           );
 
       // Show the code BEFORE touching currentFamilyIdProvider. The router
@@ -112,6 +115,14 @@ class _CreateFamilyScreenState extends ConsumerState<CreateFamilyScreen> {
             TextField(
               controller: _yourNameController,
               decoration: const InputDecoration(labelText: 'Your name'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _labelController,
+              decoration: const InputDecoration(
+                labelText: 'Label (optional)',
+                hintText: 'e.g. Mom, Dad — helps tell parents apart',
+              ),
             ),
             const SizedBox(height: 24),
             _isLoading

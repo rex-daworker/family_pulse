@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/sign_out.dart';
 import '../../models/event_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
+import '../../widgets/app_drawer.dart';
 
 // The app's home dashboard: a quick "pulse" of the family's day —
 // today's schedule, what's coming up next, and shortcuts to the other
@@ -19,6 +21,7 @@ class PulseScreen extends ConsumerWidget {
     final eventsAsync = ref.watch(familyEventsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Family Pulse'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
@@ -29,7 +32,7 @@ class PulseScreen extends ConsumerWidget {
             tooltip: 'Settings',
           ),
           IconButton(
-            onPressed: () => _signOut(context, ref),
+            onPressed: () => confirmAndSignOut(context, ref),
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
           ),
@@ -56,58 +59,6 @@ class PulseScreen extends ConsumerWidget {
     }
     return email ?? 'there';
   }
-}
-
-// Moved here from FamilyCalendarPage — sign-out belongs on the landing
-// page now that Pulse (not the calendar) is the app's home.
-Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-  final confirmed = await _confirmSignOut(context);
-  if (!confirmed || !context.mounted) return;
-
-  try {
-    await ref.read(authServiceProvider).signOut();
-
-    // Firebase auth state changes also make GoRouter redirect on its own;
-    // this is a belt-and-suspenders nudge in case that hasn't fired yet.
-    if (context.mounted) {
-      context.go('/welcome');
-    }
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not sign out: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
-}
-
-// A tap on the logout icon used to sign out immediately with no way back —
-// one misclick and you're staring at the welcome screen. This makes it a
-// deliberate, two-step action instead.
-Future<bool> _confirmSignOut(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Sign out?'),
-      content: const Text(
-        "You'll need to log back in to see your family's calendar.",
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Sign out'),
-        ),
-      ],
-    ),
-  );
-  return confirmed ?? false;
 }
 
 class _PulseBody extends StatelessWidget {
@@ -249,6 +200,16 @@ class _PulseBody extends StatelessWidget {
               onPressed: () => context.push('/free-time'),
               icon: const Icon(Icons.free_breakfast),
               label: const Text('Free time'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/groups'),
+              icon: const Icon(Icons.groups_outlined),
+              label: const Text('Groups'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/analytics'),
+              icon: const Icon(Icons.bar_chart),
+              label: const Text('Analytics'),
             ),
           ],
         ),
