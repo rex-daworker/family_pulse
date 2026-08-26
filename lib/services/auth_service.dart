@@ -1,5 +1,19 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Thrown for auth failures the UI should show a message for. `code` is a
+/// stable, language-neutral identifier — never shown to the user directly.
+/// Screens translate it via `localizedErrorMessage()` (core/error_messages.dart)
+/// so the same failure reads correctly in whatever language is active,
+/// instead of this service layer (which has no BuildContext / locale of
+/// its own) baking in English text.
+class AuthError implements Exception {
+  const AuthError(this.code);
+  final String code;
+
+  @override
+  String toString() => 'AuthError($code)';
+}
+
 class AuthService {
   // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -32,7 +46,7 @@ class AuthService {
 
       return credential;
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthError(e);
+      throw AuthError(_authErrorCode(e));
     }
   }
 
@@ -47,7 +61,7 @@ class AuthService {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthError(e);
+      throw AuthError(_authErrorCode(e));
     }
   }
 
@@ -56,22 +70,34 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // ─── UPDATE DISPLAY NAME ───────────────────────────────────
+  // Used by the Settings screen so a user can fix a typo or just change
+  // what the app calls them. reload() is required afterward — otherwise
+  // the in-memory User object (and anything watching userChanges) keeps
+  // showing the old name until the next full sign-in.
+  Future<void> updateDisplayName(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw const AuthError('not-signed-in');
+    }
+    await user.updateDisplayName(name);
+    await user.reload();
+  }
+
   // ─── ERROR HANDLER ─────────────────────────────────────────
-  // Converts Firebase error codes into readable messages
-  String _handleAuthError(FirebaseAuthException e) {
+  // Normalizes a Firebase error code into one of the codes
+  // localizedErrorMessage() knows how to translate; anything unrecognized
+  // collapses to 'unknown' rather than leaking a raw Firebase code to the UI.
+  String _authErrorCode(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return 'Password is too weak. Use at least 6 characters.';
       case 'email-already-in-use':
-        return 'An account already exists with this email.';
       case 'user-not-found':
-        return 'No account found with this email.';
       case 'wrong-password':
-        return 'Incorrect password. Please try again.';
       case 'invalid-email':
-        return 'Please enter a valid email address.';
+        return e.code;
       default:
-        return 'Something went wrong. Please try again.';
+        return 'unknown';
     }
   }
 }

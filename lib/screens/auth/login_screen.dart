@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/error_messages.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -11,11 +14,40 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return l10n.emailRequiredError;
+    if (!email.contains('@') || !email.contains('.')) {
+      return l10n.emailInvalidError;
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if ((value ?? '').isEmpty) {
+      return AppLocalizations.of(context).passwordRequiredError;
+    }
+    return null;
+  }
 
   Future<void> _login() async {
+    // Inline field errors show automatically — bail before touching Firebase.
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
@@ -27,9 +59,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localizedErrorMessage(context, e)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -38,33 +73,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('FamilyPulse Login')),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 24),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(onPressed: _login, child: const Text('Login')),
-            TextButton(
-              onPressed: () => context.push('/register'),
-              child: const Text('Don\'t have an account? Register here.'),
-            ),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: l10n.emailLabel),
+                keyboardType: TextInputType.emailAddress,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: _validateEmail,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: l10n.passwordLabel,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    tooltip: _obscurePassword
+                        ? l10n.showPassword
+                        : l10n.hidePassword,
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                ),
+                obscureText: _obscurePassword,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: _validatePassword,
+              ),
+              const SizedBox(height: 24),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _login,
+                      child: Text(l10n.loginButton),
+                    ),
+              TextButton(
+                onPressed: () => context.push('/register'),
+                child: Text(l10n.loginRegisterPrompt),
+              ),
+            ],
+          ),
         ),
       ),
     );

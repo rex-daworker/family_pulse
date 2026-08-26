@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/error_messages.dart';
+import '../../core/family_roles.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class JoinFamilyScreen extends ConsumerStatefulWidget {
@@ -13,6 +16,7 @@ class JoinFamilyScreen extends ConsumerStatefulWidget {
 class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   final _familyIdController = TextEditingController();
   final _yourNameController = TextEditingController();
+  final _labelController = TextEditingController();
   String _selectedRole = 'parent';
   bool _isLoading = false;
 
@@ -20,16 +24,18 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   void dispose() {
     _familyIdController.dispose();
     _yourNameController.dispose();
+    _labelController.dispose();
     super.dispose();
   }
 
   Future<void> _joinFamily() async {
+    final l10n = AppLocalizations.of(context);
     final familyId = _familyIdController.text.trim();
     final yourName = _yourNameController.text.trim();
     if (familyId.isEmpty || yourName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in both fields.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.fillBothFieldsError)));
       return;
     }
 
@@ -44,15 +50,16 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             userName: yourName,
             userEmail: user.email ?? '',
             role: _selectedRole,
+            label: _labelController.text.trim(),
           );
       ref.invalidate(currentFamilyIdProvider);
       await ref.read(currentFamilyIdProvider.future);
       if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizedErrorMessage(context, e))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -61,42 +68,55 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Join a family')),
+      appBar: AppBar(title: Text(l10n.joinFamilyTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _familyIdController,
-              decoration: const InputDecoration(
-                labelText: 'Family code',
-                helperText: 'Ask a family member for their family code.',
+              decoration: InputDecoration(
+                labelText: l10n.familyCodeLabel,
+                helperText: l10n.familyCodeHelper,
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _yourNameController,
-              decoration: const InputDecoration(labelText: 'Your name'),
+              decoration: InputDecoration(labelText: l10n.yourNameLabel),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _selectedRole,
-              decoration: const InputDecoration(labelText: 'Role'),
-              items: const [
-                DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                DropdownMenuItem(value: 'child', child: Text('Child')),
-              ],
+              decoration: InputDecoration(labelText: l10n.roleLabel),
+              items: kFamilyRoles
+                  .map(
+                    (role) => DropdownMenuItem(
+                      value: role,
+                      child: Text(roleDisplayName(context, role)),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) setState(() => _selectedRole = value);
               },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _labelController,
+              decoration: InputDecoration(
+                labelText: l10n.labelOptional,
+                hintText: l10n.labelHint,
+              ),
             ),
             const SizedBox(height: 24),
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _joinFamily,
-                    child: const Text('Join family'),
+                    child: Text(l10n.joinFamilyAction),
                   ),
           ],
         ),

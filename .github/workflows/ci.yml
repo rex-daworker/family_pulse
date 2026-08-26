@@ -38,3 +38,24 @@ jobs:
 
       - name: Build APK
         run: flutter build apk --debug
+
+      - name: Email the team on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "🚨 Family Pulse build failed — ${{ github.ref_name }} (${{ github.actor }})"
+          to: ${{ vars.CI_NOTIFY_EMAILS }}
+          from: "Family Pulse CI"
+          body: |
+            The build broke on branch "${{ github.ref_name }}".
+
+            Pushed by: ${{ github.actor }}
+            Commit: ${{ github.sha }}
+            Message: ${{ github.event.head_commit.message }}
+
+            See exactly what failed here:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

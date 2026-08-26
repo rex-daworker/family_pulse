@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Needed by image_picker's camera-capture option on the profile photo
+         picker — without this declared, some devices refuse the camera
+         intent instead of just falling back to gallery-only. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:label="family_pulse"
         android:name="${applicationName}"

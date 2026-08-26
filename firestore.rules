@@ -21,8 +21,17 @@ service cloud.firestore {
       // Any signed-in user can create a new family
       allow create: if request.auth != null;
 
-      // Only members of this family can read or update it
-      allow read, update: if request.auth != null &&
+      // Read only requires being signed in, not already being a member —
+      // joinFamily() has to read this doc (to confirm the code is real)
+      // before the joiner has a users/{uid} doc of their own, so a
+      // membership check here would make joining impossible: every
+      // first-time joiner would get denied checking a code that turns out
+      // to be perfectly valid. The family ID doubles as the referral code,
+      // so you can't reach this doc without already having been given it —
+      // there's no directory or listing endpoint that leaks IDs. Only
+      // existing members may update it.
+      allow read: if request.auth != null;
+      allow update: if request.auth != null &&
         exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
 
       match /users/{userId} {
@@ -31,12 +40,35 @@ service cloud.firestore {
         // during the same write sequence.
         allow create: if request.auth != null && request.auth.uid == userId;
 
-        allow read, update: if request.auth != null &&
+        // Any member can read the roster (needed for the Family screen,
+        // Free Time finder, and Groups member picker).
+        allow read: if request.auth != null &&
           exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+
+        // You can always update your own membership doc.
+        allow update: if request.auth != null && request.auth.uid == userId;
+
+        // A parent can rename another member or change their label —
+        // nothing else. get() reads the caller's own doc to check their
+        // role (request.auth.uid != userId here, so it isn't `resource`),
+        // and affectedKeys() keeps this from becoming a general "parents
+        // can edit anything" hole — role/email still require being the
+        // member yourself.
+        allow update: if request.auth != null && request.auth.uid != userId &&
+          get(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid)).data.role == 'parent' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'label']);
       }
 
       match /events/{eventId} {
         // Any family member can read and write events
+        allow read, write: if request.auth != null &&
+          exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+      }
+
+      match /groups/{groupId} {
+        // Sub-groups (e.g. "Kids", "Chores squad") — any family member can
+        // create/view/edit, same permissiveness as events. Nothing in the
+        // feature request called for tighter group-specific permissions.
         allow read, write: if request.auth != null &&
           exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
       }

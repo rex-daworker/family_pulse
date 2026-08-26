@@ -1,0 +1,18 @@
+# Config for `flutter gen-l10n`, run automatically by `flutter pub get` /
+# `flutter run` because pubspec.yaml sets `flutter: generate: true`.
+#
+# output-dir is explicit (rather than relying on the default synthetic
+# package under .dart_tool/) so the generated AppLocalizations class is a
+# normal, importable part of lib/ — its behavior doesn't depend on
+# synthetic-package handling that can vary between Flutter versions.
+#
+# `synthetic-package` used to make that explicit too, but current Flutter
+# versions dropped it (non-synthetic is the only mode now) and warn on
+# every build if it's still set — so it's left out here on purpose, not
+# missing by accident.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated
+nullable-getter: false

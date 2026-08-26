@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/auth_provider.dart';
+import '../../core/sign_out.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 class FamilyChoiceScreen extends ConsumerWidget {
   const FamilyChoiceScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome'),
+        title: Text(l10n.familyChoiceTitle),
         actions: [
           IconButton(
-            onPressed: () => ref.read(authServiceProvider).signOut(),
+            onPressed: () => confirmAndSignOut(context, ref),
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: l10n.signOut,
           ),
         ],
       ),
@@ -24,20 +26,20 @@ class FamilyChoiceScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'You\'re not part of a family yet.',
-              style: TextStyle(fontSize: 18),
+            Text(
+              l10n.notInFamilyYet,
+              style: const TextStyle(fontSize: 18),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () => context.push('/create-family'),
-              child: const Text('Create a family'),
+              child: Text(l10n.createFamilyButton),
             ),
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => context.push('/join-family'),
-              child: const Text('Join a family'),
+              child: Text(l10n.joinFamilyButton),
             ),
           ],
         ),

@@ -3,18 +3,34 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/event_categories.dart';
+import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
+import 'providers/settings_provider.dart';
+import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/auth/welcome_screen.dart';
 import 'screens/family/create_family_screen.dart';
 import 'screens/family/family_choice_screen.dart';
+import 'screens/family/family_screen.dart';
+import 'screens/family/groups_screen.dart';
 import 'screens/family/join_family_screen.dart';
+import 'screens/home/free_time_screen.dart';
+import 'screens/home/pulse_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
+import 'widgets/app_drawer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +46,17 @@ void main() async {
     if (e.code != 'duplicate-app') rethrow;
   }
 
-  runApp(const ProviderScope(child: FamilyPulseApp()));
+  // Loaded once here (rather than inside each setting) so the theme
+  // choice and other persisted settings are available synchronously via
+  // sharedPreferencesProvider everywhere else in the app.
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const FamilyPulseApp(),
+    ),
+  );
 }
 
 // Normalizes a DateTime to the calendar day only, so events can be grouped by day.
@@ -51,10 +77,20 @@ class FamilyPulseApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'FamilyPulse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(ref.watch(themePaletteProvider)),
+      darkTheme: AppTheme.dark(ref.watch(themePaletteProvider)),
+      themeMode: ref.watch(themeModeProvider),
+      // null here means "follow the device language" — MaterialApp resolves
+      // that against supportedLocales on its own. Only non-null once the
+      // user picks English/Finnish/Swedish explicitly in Settings.
+      locale: ref.watch(localeProvider),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),
     );
   }
@@ -80,8 +116,8 @@ class GoRouterRefreshStream extends ChangeNotifier {
 }
 
 // Builds the app's router. Redirect logic enforces:
-// not logged in -> /login; logged in but no family -> /family-choice;
-// otherwise -> home.
+// not logged in -> /welcome (which gates /login and /register);
+// logged in but no family -> /family-choice; otherwise -> home.
 final routerProvider = Provider<GoRouter>((ref) {
   final authService = ref.watch(authServiceProvider);
 
@@ -96,13 +132,16 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refreshStream,
     redirect: (context, state) {
-      final loggingIn =
+      // The only screens a signed-out visitor can reach. Anything else
+      // bounces to /welcome — the pitch screen that's the sole door in.
+      final publicRoute =
+          state.matchedLocation == '/welcome' ||
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       final user = authService.currentUser;
-      if (user == null) return loggingIn ? null : '/login';
-      if (loggingIn) return '/';
+      if (user == null) return publicRoute ? null : '/welcome';
+      if (publicRoute) return '/';
 
       // Read the already-resolved family state — no awaiting here.
       final familyAsync = ref.read(currentFamilyIdProvider);
@@ -124,9 +163,38 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const PulseScreen()),
       GoRoute(
-        path: '/',
+        path: '/calendar',
         builder: (context, state) => const FamilyCalendarPage(),
+      ),
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/free-time',
+        builder: (context, state) => const FreeTimeScreen(),
+      ),
+      GoRoute(
+        path: '/family',
+        builder: (context, state) => const FamilyScreen(),
+      ),
+      GoRoute(
+        path: '/groups',
+        builder: (context, state) => const GroupsScreen(),
+      ),
+      GoRoute(
+        path: '/analytics',
+        builder: (context, state) => const AnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
@@ -162,27 +230,15 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   late DateTime _currentMonth;
   late DateTime _selectedDate;
 
-  bool _showEmptyDays = false;
+  // Starting value comes from Settings' "show empty days by default";
+  // the AppBar icon below can still flip it for the rest of this session
+  // without changing that default.
+  late bool _showEmptyDays;
 
   // Populated at the top of build() from the live familyEventsProvider
   // stream — see _groupEventsByDay(). Starts empty so the first frame
   // (before the stream has emitted) has something safe to read.
   Map<DateTime, List<EventModel>> _events = {};
-
-  final List<String> _monthNames = <String>[
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
 
   // ---------------------------------------------------------------------------
   // INIT
@@ -197,6 +253,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     _currentMonth = DateTime(now.year, now.month);
 
     _selectedDate = eventKeyFor(now);
+
+    _showEmptyDays = ref.read(showEmptyDaysByDefaultProvider);
   }
 
   // ---------------------------------------------------------------------------
@@ -218,35 +276,31 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     return grouped;
   }
 
-  // ---------------------------------------------------------------------------
-  // LOGOUT
-  // ---------------------------------------------------------------------------
-
-  Future<void> _signOut() async {
-    try {
-      // Use AuthService directly.
-      // This avoids the ref/authStateNotifierProvider problem.
-      await ref.read(authServiceProvider).signOut();
-
-      // Firebase auth state changes will also make GoRouter redirect.
-      if (mounted) {
-        context.go('/login');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not sign out: $e')));
-      }
-    }
-  }
+  // Sign-out now lives on PulseScreen's app bar (the landing page) — see
+  // _signOut() in screens/home/pulse_screen.dart.
 
   // ---------------------------------------------------------------------------
   // MONTH LABEL
   // ---------------------------------------------------------------------------
 
-  String _monthLabel(DateTime month) {
-    return '${_monthNames[month.month - 1]} ${month.year}';
+  // Locale-aware month + year (e.g. "August 2026", "elokuu 2026",
+  // "augusti 2026") — DateFormat picks the right month names for whatever
+  // language is active instead of us hand-translating a name array.
+  String _monthLabel(BuildContext context, DateTime month) {
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMM(locale).format(month);
+  }
+
+  // Locale-aware single-letter weekday header (S M T W T F S in English,
+  // but the right letters for whatever language is active). Anchored to
+  // 1970-01-04, a known Sunday, so this generates one of each weekday in
+  // Sun..Sat order without hardcoding any language's names.
+  List<String> _weekdayLabels(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    return List<String>.generate(7, (index) {
+      final day = DateTime(1970, 1, 4 + index);
+      return DateFormat('EEEEE', locale).format(day);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -302,27 +356,47 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     final user = ref.read(authStateProvider).value;
     return user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
-        : (user?.email ?? 'Family member');
+        : (user?.email ?? AppLocalizations.of(context).familyMemberFallback);
+  }
+
+  // Consistent colors so the snackbar itself signals success vs. failure,
+  // not just the wording — matches the pattern used across the whole editor.
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green.shade700),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
   }
 
   Future<void> _deleteEvent(EventModel event) async {
+    final l10n = AppLocalizations.of(context);
     final familyId = ref.read(currentFamilyIdProvider).value;
-    if (familyId == null) return;
+    if (familyId == null) {
+      _showErrorSnackBar(l10n.couldNotFindFamilyRetryError);
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete event?'),
-          content: Text('"${event.title}" will be removed for everyone.'),
+          title: Text(l10n.deleteEventTitle),
+          content: Text(l10n.deleteEventContent(event.title)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete'),
+              child: Text(l10n.delete),
             ),
           ],
         );
@@ -335,23 +409,22 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       await ref
           .read(eventServiceProvider)
           .deleteEvent(familyId: familyId, eventId: event.id);
+      _showSuccessSnackBar(l10n.eventDeleted(event.title));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not delete event: $e')));
-      }
+      _showErrorSnackBar(l10n.couldNotDeleteEventError(e.toString()));
     }
   }
 
+  // The dialog owns its own TextEditingControllers (created in initState,
+  // disposed in its own dispose()) instead of us creating/disposing them
+  // here around an `await showDialog(...)`. That older pattern raced the
+  // dialog's exit transition: showDialog's Future can resolve — letting us
+  // call titleController.dispose() — before the AlertDialog widget has
+  // actually finished animating out and been removed from the tree, so the
+  // still-live TextField would touch a disposed controller. Letting the
+  // framework own the controller's lifecycle avoids that race entirely.
   Future<void> _showEventEditor({EventModel? event}) async {
-    final titleController = TextEditingController(text: event?.title ?? '');
-
-    final descriptionController = TextEditingController(
-      text: event?.description ?? '',
-    );
-
-    TimeOfDay selectedTime = TimeOfDay.fromDateTime(
+    final initialTime = TimeOfDay.fromDateTime(
       event?.date ??
           DateTime(
             _selectedDate.year,
@@ -361,155 +434,70 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
           ),
     );
 
-    await showDialog<void>(
+    final savedDate = await showDialog<DateTime>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return AlertDialog(
-              title: Text(event == null ? 'Add event' : 'Edit event'),
-
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Title'),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(labelText: 'Notes'),
-                      maxLines: 3,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final time = await showTimePicker(
-                          context: dialogContext,
-                          initialTime: selectedTime,
-                        );
-
-                        if (time != null) {
-                          setDialogState(() {
-                            selectedTime = time;
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.access_time),
-                      label: Text(
-                        'Time: ${selectedTime.format(dialogContext)}',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-
-                FilledButton(
-                  onPressed: () async {
-                    final title = titleController.text.trim();
-
-                    if (title.isEmpty) {
-                      return;
-                    }
-
-                    final eventDate = DateTime(
-                      _selectedDate.year,
-                      _selectedDate.month,
-                      _selectedDate.day,
-                      selectedTime.hour,
-                      selectedTime.minute,
-                    );
-
-                    final familyId = ref.read(currentFamilyIdProvider).value;
-                    if (familyId == null) {
-                      Navigator.of(dialogContext).pop();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'No family found yet — try again in a moment.',
-                            ),
-                          ),
-                        );
-                      }
-                      return;
-                    }
-
-                    final description = descriptionController.text.trim();
-                    final endTime = eventDate.add(const Duration(hours: 1));
-
-                    try {
-                      if (event == null) {
-                        await ref
-                            .read(eventServiceProvider)
-                            .createEvent(
-                              familyId: familyId,
-                              title: title,
-                              category: 'other',
-                              startTime: eventDate,
-                              endTime: endTime,
-                              description: description,
-                              userName: _currentUserName,
-                            );
-                      } else {
-                        await ref
-                            .read(eventServiceProvider)
-                            .updateEvent(
-                              familyId: familyId,
-                              eventId: event.id,
-                              updates: {
-                                'title': title,
-                                'description': description,
-                                'date': Timestamp.fromDate(eventDate),
-                                'start_time': Timestamp.fromDate(eventDate),
-                                'end_time': Timestamp.fromDate(endTime),
-                              },
-                            );
-                      }
-
-                      if (mounted) {
-                        setState(() {
-                          _selectedDate = eventKeyFor(eventDate);
-                        });
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Could not save event: $e')),
-                        );
-                      }
-                    }
-
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
-                    }
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
+      builder: (dialogContext) => _EventEditorDialog(
+        event: event,
+        initialTime: initialTime,
+        onError: _showErrorSnackBar,
+        onSave: (title, description, time, category) async {
+          final familyId = ref.read(currentFamilyIdProvider).value;
+          if (familyId == null) {
+            throw Exception(
+              AppLocalizations.of(context).couldNotFindFamilyRetryError,
             );
-          },
-        );
-      },
+          }
+
+          final eventDate = DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            time.hour,
+            time.minute,
+          );
+          final endTime = eventDate.add(const Duration(hours: 1));
+
+          if (event == null) {
+            await ref
+                .read(eventServiceProvider)
+                .createEvent(
+                  familyId: familyId,
+                  title: title,
+                  category: category,
+                  startTime: eventDate,
+                  endTime: endTime,
+                  description: description,
+                  userName: _currentUserName,
+                );
+          } else {
+            await ref
+                .read(eventServiceProvider)
+                .updateEvent(
+                  familyId: familyId,
+                  eventId: event.id,
+                  updates: {
+                    'title': title,
+                    'description': description,
+                    'category': category,
+                    'date': Timestamp.fromDate(eventDate),
+                    'start_time': Timestamp.fromDate(eventDate),
+                    'end_time': Timestamp.fromDate(endTime),
+                  },
+                );
+          }
+
+          return eventDate;
+        },
+      ),
     );
 
-    titleController.dispose();
-    descriptionController.dispose();
+    if (savedDate != null && mounted) {
+      setState(() {
+        _selectedDate = eventKeyFor(savedDate);
+      });
+      final l10n = AppLocalizations.of(context);
+      _showSuccessSnackBar(event == null ? l10n.eventAdded : l10n.eventUpdated);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -528,8 +516,16 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stackTrace) => Scaffold(
-        appBar: AppBar(title: const Text('Family Calendar')),
-        body: Center(child: Text('Could not load events: $error')),
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context).familyCalendarTitle),
+        ),
+        body: Center(
+          child: Text(
+            AppLocalizations.of(
+              context,
+            ).couldNotLoadEventsError(error.toString()),
+          ),
+        ),
       ),
     );
   }
@@ -540,10 +536,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
   Widget _buildCalendarScaffold(BuildContext context) {
     final dayEvents = _eventsForSelectedDay();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Family Calendar'),
+        title: Text(l10n.familyCalendarTitle),
 
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
 
@@ -558,7 +556,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
             icon: Icon(
               _showEmptyDays ? Icons.visibility : Icons.visibility_off,
             ),
-            tooltip: _showEmptyDays ? 'Hide empty days' : 'Show empty days',
+            tooltip: _showEmptyDays
+                ? l10n.hideEmptyDaysTooltip
+                : l10n.showEmptyDaysTooltip,
           ),
 
           // Family screen.
@@ -567,14 +567,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
               context.push('/family');
             },
             icon: const Icon(Icons.family_restroom),
-            tooltip: 'My family',
-          ),
-
-          // Logout.
-          IconButton(
-            onPressed: _signOut,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: l10n.myFamilyTooltip,
           ),
         ],
       ),
@@ -602,7 +595,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                 Expanded(
                   child: Text(
-                    _monthLabel(_currentMonth),
+                    _monthLabel(context, _currentMonth),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -633,7 +626,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
               crossAxisCount: 7,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+              children: _weekdayLabels(context)
                   .map(
                     (label) => Center(
                       child: Text(
@@ -658,6 +651,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                 crossAxisCount: 7,
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
+                // Square cells (the default 1.0 ratio) are a hair too short
+                // for their content — day number + spacer + event dot/"Open"
+                // label overflows the bottom by a fraction of a pixel on
+                // most screens. Slightly taller-than-wide cells fix it with
+                // margin to spare, including for larger system font sizes.
+                childAspectRatio: 0.82,
               ),
 
               itemCount: _daysForMonth(_currentMonth).length,
@@ -729,13 +728,20 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
+                                // Colored by the day's first event's category
+                                // so the month grid hints at what kind of day
+                                // it is before you even tap in.
+                                color: categoryMeta(
+                                  context,
+                                  (_events[eventKeyFor(day)]?.first.category) ??
+                                      'other',
+                                ).color,
                                 shape: BoxShape.circle,
                               ),
                             )
                           else if (showEmpty)
                             Text(
-                              'Open',
+                              l10n.openDayLabel,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade700,
@@ -769,9 +775,11 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   Row(
                     children: [
                       Text(
-                        'Events for '
-                        '${_selectedDate.day}.'
-                        '${_selectedDate.month}',
+                        l10n.eventsForDate(
+                          DateFormat.Md(
+                            Localizations.localeOf(context).toString(),
+                          ).format(_selectedDate),
+                        ),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
 
@@ -782,7 +790,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                           _showEventEditor();
                         },
                         icon: const Icon(Icons.add_circle_outline),
-                        tooltip: 'Add event',
+                        tooltip: l10n.addEventTooltip,
                       ),
                     ],
                   ),
@@ -790,17 +798,18 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   const SizedBox(height: 8),
 
                   if (dayEvents.isEmpty)
-                    const Text('No events yet — add one to plan family time.')
+                    Text(l10n.noEventsYet)
                   else
                     ...dayEvents.map((event) {
+                      final meta = categoryMeta(context, event.category);
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
 
                           subtitle: Text(
                             event.description.isEmpty
-                                ? 'No notes'
-                                : event.description,
+                                ? meta.label
+                                : '${meta.label} · ${event.description}',
                           ),
 
                           trailing: Row(
@@ -808,14 +817,14 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Edit event',
+                                tooltip: l10n.editEventTooltip,
                                 onPressed: () {
                                   _showEventEditor(event: event);
                                 },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                tooltip: 'Delete event',
+                                tooltip: l10n.deleteEventTooltip,
                                 onPressed: () {
                                   _deleteEvent(event);
                                 },
@@ -823,9 +832,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             ],
                           ),
 
-                          leading: Icon(
-                            Icons.event_available,
-                            color: Theme.of(context).colorScheme.primary,
+                          leading: CircleAvatar(
+                            backgroundColor: meta.color.withValues(alpha: 0.15),
+                            child: Icon(meta.icon, color: meta.color),
                           ),
                         ),
                       );
@@ -845,8 +854,237 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
           _showEventEditor();
         },
         icon: const Icon(Icons.add),
-        label: const Text('New event'),
+        label: Text(l10n.newEventButton),
       ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------
+// EVENT EDITOR DIALOG
+// -----------------------------------------------------------------------
+// A dedicated StatefulWidget so its TextEditingControllers are created in
+// initState() and disposed in dispose() — controlled entirely by the
+// framework's own widget lifecycle, never by us guessing when it's safe to
+// dispose after an `await showDialog(...)` returns.
+class _EventEditorDialog extends StatefulWidget {
+  const _EventEditorDialog({
+    required this.event,
+    required this.initialTime,
+    required this.onSave,
+    required this.onError,
+  });
+
+  final EventModel? event;
+  final TimeOfDay initialTime;
+
+  // Returns the saved event's date/time on success, so the caller can jump
+  // the calendar to it. Throwing surfaces an error without closing the
+  // dialog, so the user doesn't lose what they typed.
+  final Future<DateTime> Function(
+    String title,
+    String description,
+    TimeOfDay time,
+    String category,
+  )
+  onSave;
+
+  final void Function(String message) onError;
+
+  @override
+  State<_EventEditorDialog> createState() => _EventEditorDialogState();
+}
+
+class _EventEditorDialogState extends State<_EventEditorDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late TimeOfDay _selectedTime;
+  late String _selectedCategory;
+
+  String? _titleError;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.event?.title ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.event?.description ?? '',
+    );
+    _selectedTime = widget.initialTime;
+    _selectedCategory = kEventCategories.contains(widget.event?.category)
+        ? widget.event!.category
+        : 'other';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+
+    if (time != null && mounted) {
+      setState(() {
+        _selectedTime = time;
+      });
+    }
+  }
+
+  Future<void> _handleSave() async {
+    // Read everything context-derived before the `await` below — after it,
+    // this dialog may already be unmounted, and touching `context` (even
+    // just to look up AppLocalizations) at that point is unsafe.
+    final l10n = AppLocalizations.of(context);
+    final title = _titleController.text.trim();
+
+    // Inline validation — shown on the field itself, dialog stays open so
+    // nothing typed is lost.
+    if (title.isEmpty) {
+      setState(() {
+        _titleError = l10n.titleRequiredError;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final savedDate = await widget.onSave(
+        title,
+        _descriptionController.text.trim(),
+        _selectedTime,
+        _selectedCategory,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(savedDate);
+      }
+    } catch (e) {
+      // Leave the dialog open on failure so the user can retry.
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+      widget.onError(l10n.couldNotSaveEventError(e.toString()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(
+        widget.event == null
+            ? l10n.addEventDialogTitle
+            : l10n.editEventDialogTitle,
+      ),
+
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              maxLength: 60,
+              decoration: InputDecoration(
+                labelText: l10n.titleFieldLabel,
+                errorText: _titleError,
+                isDense: true,
+              ),
+              onChanged: (_) {
+                if (_titleError != null) {
+                  setState(() {
+                    _titleError = null;
+                  });
+                }
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: l10n.notesLabel,
+                isDense: true,
+                alignLabelWithHint: true,
+              ),
+              minLines: 1,
+              maxLines: 3,
+              maxLength: 300,
+            ),
+
+            const SizedBox(height: 12),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.categoryLabel,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              children: kEventCategories.map((category) {
+                final meta = categoryMeta(context, category);
+                final selected = _selectedCategory == category;
+                return ChoiceChip(
+                  avatar: Icon(
+                    meta.icon,
+                    size: 18,
+                    color: selected ? Colors.white : meta.color,
+                  ),
+                  label: Text(meta.label),
+                  selected: selected,
+                  selectedColor: meta.color,
+                  labelStyle: TextStyle(color: selected ? Colors.white : null),
+                  onSelected: (_) {
+                    setState(() => _selectedCategory = category);
+                  },
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 12),
+
+            OutlinedButton.icon(
+              onPressed: _pickTime,
+              icon: const Icon(Icons.access_time),
+              label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
+            ),
+          ],
+        ),
+      ),
+
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+
+        FilledButton(
+          onPressed: _isSaving ? null : _handleSave,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.save),
+        ),
+      ],
     );
   }
 }
