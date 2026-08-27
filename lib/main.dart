@@ -13,6 +13,7 @@ import 'screens/family/create_family_screen.dart';
 import 'screens/family/family_choice_screen.dart';
 import 'screens/family/join_family_screen.dart';
 import 'screens/family/family_screen.dart';
+import 'screens/finder/free_time_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,7 +102,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshStream.dispose);
 
   // Refresh the router when the family lookup changes.
-  ref.listen(currentFamilyIdProvider, (_, __) {
+  ref.listen(currentFamilyIdProvider, (previous, next) {
     refreshStream.refresh();
   });
 
@@ -225,6 +226,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           return const FamilyScreen();
         },
       ),
+
+      // -----------------------------------------------------------------------
+      // FIND FREE TIME
+      // -----------------------------------------------------------------------
+      GoRoute(
+        path: '/free-time',
+        builder: (context, state) {
+          final familyId = state.uri.queryParameters['familyId'] ?? '';
+
+          final memberIdsString = state.uri.queryParameters['memberIds'] ?? '';
+
+          final memberIds = memberIdsString
+              .split(',')
+              .map((id) => id.trim())
+              .where((id) => id.isNotEmpty)
+              .toList();
+
+          return FreeTimeScreen(familyId: familyId, memberIds: memberIds);
+        },
+      ),
     ],
   );
 });
@@ -313,11 +334,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
   Future<void> _signOut() async {
     try {
-      // Use AuthService directly.
-      // This avoids the ref/authStateNotifierProvider problem.
       await ref.read(authServiceProvider).signOut();
 
-      // Firebase auth state changes will also make GoRouter redirect.
       if (mounted) {
         context.go('/login');
       }
@@ -412,8 +430,10 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
               content: SizedBox(
                 width: double.maxFinite,
+
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+
                   children: [
                     TextField(
                       controller: titleController,
@@ -443,7 +463,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                           });
                         }
                       },
+
                       icon: const Icon(Icons.access_time),
+
                       label: Text(
                         'Time: ${selectedTime.format(dialogContext)}',
                       ),
@@ -477,18 +499,14 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                     );
 
                     setState(() {
-                      // -------------------------------------------------------
-                      // FIX FOR THE PREVIOUS NULLABLE EVENT ERROR
-                      // -------------------------------------------------------
-
                       final DateTime? oldKey = event != null
                           ? eventKeyFor(event.date)
                           : null;
 
                       final newKey = eventKeyFor(eventDate);
 
-                      // Remove event from its old day when
-                      // editing and changing the date.
+                      // Remove event from old day
+                      // when editing.
                       if (oldKey != null && oldKey != newKey) {
                         final oldList = (_events[oldKey] ?? [])
                             .where((existing) => existing != event)
@@ -497,12 +515,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                         _events[oldKey] = oldList;
                       }
 
-                      // Remove the old version of the event.
+                      // Remove old version.
                       final list = (_events[newKey] ?? [])
                           .where((existing) => existing != event)
                           .toList();
 
-                      // Add the new version.
+                      // Add new version.
                       list.add(
                         Event(
                           title: title,
@@ -520,6 +538,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                     Navigator.of(dialogContext).pop();
                   },
+
                   child: const Text('Save'),
                 ),
               ],
@@ -548,29 +567,30 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
 
         actions: [
-          // Show/hide empty days.
           IconButton(
             onPressed: () {
               setState(() {
                 _showEmptyDays = !_showEmptyDays;
               });
             },
+
             icon: Icon(
               _showEmptyDays ? Icons.visibility : Icons.visibility_off,
             ),
+
             tooltip: _showEmptyDays ? 'Hide empty days' : 'Show empty days',
           ),
 
-          // Family screen.
           IconButton(
             onPressed: () {
               context.push('/family');
             },
+
             icon: const Icon(Icons.family_restroom),
+
             tooltip: 'My family',
           ),
 
-          // Logout.
           IconButton(
             onPressed: _signOut,
             icon: const Icon(Icons.logout),
@@ -581,6 +601,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
       body: Padding(
         padding: const EdgeInsets.all(16),
+
         child: ListView(
           children: [
             // -----------------------------------------------------------------
@@ -597,13 +618,16 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                       );
                     });
                   },
+
                   icon: const Icon(Icons.chevron_left),
                 ),
 
                 Expanded(
                   child: Text(
                     _monthLabel(_currentMonth),
+
                     textAlign: TextAlign.center,
+
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -617,6 +641,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                       );
                     });
                   },
+
                   icon: const Icon(Icons.chevron_right),
                 ),
               ],
@@ -633,6 +658,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
               crossAxisCount: 7,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
+
               children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
                   .map(
                     (label) => Center(
@@ -682,6 +708,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                   onTap: () {
                     _selectDay(day);
                   },
+
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
 
@@ -712,10 +739,12 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                         children: [
                           Text(
                             '${day.day}',
+
                             style: TextStyle(
                               color: isCurrentMonth
                                   ? Colors.black
                                   : Colors.grey,
+
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -728,14 +757,17 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                             Container(
                               width: 8,
                               height: 8,
+
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.primary,
+
                                 shape: BoxShape.circle,
                               ),
                             )
                           else if (showEmpty)
                             Text(
                               'Open',
+
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade700,
@@ -759,6 +791,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
+
                 borderRadius: BorderRadius.circular(18),
               ),
 
@@ -772,6 +805,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                         'Events for '
                         '${_selectedDate.day}.'
                         '${_selectedDate.month}',
+
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
 
@@ -781,7 +815,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                         onPressed: () {
                           _showEventEditor();
                         },
+
                         icon: const Icon(Icons.add_circle_outline),
+
                         tooltip: 'Add event',
                       ),
                     ],
@@ -805,6 +841,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                           trailing: IconButton(
                             icon: const Icon(Icons.edit_outlined),
+
                             onPressed: () {
                               _showEventEditor(event: event);
                             },
@@ -831,7 +868,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
         onPressed: () {
           _showEventEditor();
         },
+
         icon: const Icon(Icons.add),
+
         label: const Text('New event'),
       ),
     );

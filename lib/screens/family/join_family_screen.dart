@@ -12,8 +12,9 @@ class JoinFamilyScreen extends ConsumerStatefulWidget {
 }
 
 class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
-  final _familyIdController = TextEditingController();
-  final _yourNameController = TextEditingController();
+  final TextEditingController _familyIdController = TextEditingController();
+
+  final TextEditingController _yourNameController = TextEditingController();
 
   String _selectedRole = 'parent';
   bool _isLoading = false;
@@ -26,9 +27,13 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   }
 
   Future<void> _joinFamily() async {
-    final familyId = _familyIdController.text.trim();
+    final String familyId = _familyIdController.text.trim();
 
-    final yourName = _yourNameController.text.trim();
+    final String yourName = _yourNameController.text.trim();
+
+    // ----------------------------------------------------------
+    // VALIDATION
+    // ----------------------------------------------------------
 
     if (familyId.isEmpty || yourName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -37,14 +42,28 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    if (_isLoading) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
+      // --------------------------------------------------------
+      // GET CURRENT USER
+      // --------------------------------------------------------
+
       final user = ref.read(authServiceProvider).currentUser;
 
       if (user == null) {
         throw Exception('You must be signed in to join a family.');
       }
+
+      // --------------------------------------------------------
+      // JOIN FAMILY
+      // --------------------------------------------------------
 
       await ref
           .read(familyServiceProvider)
@@ -56,23 +75,45 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             role: _selectedRole,
           );
 
-      // Refresh the family lookup.
+      // --------------------------------------------------------
+      // REFRESH FAMILY ID
+      // --------------------------------------------------------
+
       ref.invalidate(currentFamilyIdProvider);
 
       await ref.read(currentFamilyIdProvider.future);
 
-      if (mounted) {
-        context.go('/family');
+      // --------------------------------------------------------
+      // GO TO FAMILY SCREEN
+      // --------------------------------------------------------
+
+      if (!mounted) {
+        return;
       }
+
+      context.go('/family');
     } catch (e) {
+      // --------------------------------------------------------
+      // ERROR
+      // --------------------------------------------------------
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
+      // --------------------------------------------------------
+      // STOP LOADING
+      //
+      // IMPORTANT:
+      // Do not use "return" inside finally.
+      // --------------------------------------------------------
+
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -81,49 +122,104 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Join a family')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _familyIdController,
-              decoration: const InputDecoration(
-                labelText: 'Family code',
-                helperText: 'Ask a family member for their family code.',
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ------------------------------------------------
+              // FAMILY CODE
+              // ------------------------------------------------
+              TextField(
+                controller: _familyIdController,
+                enabled: !_isLoading,
+                decoration: const InputDecoration(
+                  labelText: 'Family code',
+                  helperText: 'Ask a family member for their family code.',
+                  border: OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.next,
+                autocorrect: false,
               ),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _yourNameController,
-              decoration: const InputDecoration(labelText: 'Your name'),
-              textInputAction: TextInputAction.done,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedRole,
-              decoration: const InputDecoration(labelText: 'Role'),
-              items: const [
-                DropdownMenuItem(value: 'parent', child: Text('Parent')),
-                DropdownMenuItem(value: 'child', child: Text('Child')),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedRole = value);
-                }
-              },
-            ),
-            const SizedBox(height: 24),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _joinFamily,
-                      child: const Text('Join family'),
-                    ),
+
+              const SizedBox(height: 16),
+
+              // ------------------------------------------------
+              // YOUR NAME
+              // ------------------------------------------------
+              TextField(
+                controller: _yourNameController,
+                enabled: !_isLoading,
+                decoration: const InputDecoration(
+                  labelText: 'Your name',
+                  border: OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!_isLoading) {
+                    _joinFamily();
+                  }
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // ------------------------------------------------
+              // ROLE
+              // ------------------------------------------------
+              DropdownButtonFormField<String>(
+                initialValue: _selectedRole,
+                decoration: const InputDecoration(
+                  labelText: 'Role',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem<String>(
+                    value: 'parent',
+                    child: Text('Parent'),
                   ),
-          ],
+                  DropdownMenuItem<String>(
+                    value: 'child',
+                    child: Text('Child'),
+                  ),
+                ],
+                onChanged: _isLoading
+                    ? null
+                    : (String? value) {
+                        if (value == null) {
+                          return;
+                        }
+
+                        setState(() {
+                          _selectedRole = value;
+                        });
+                      },
+              ),
+
+              const SizedBox(height: 24),
+
+              // ------------------------------------------------
+              // JOIN BUTTON
+              // ------------------------------------------------
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: _isLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: _joinFamily,
+                        child: const Text('Join family'),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

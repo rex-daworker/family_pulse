@@ -45,6 +45,41 @@ class FamilyScreen extends ConsumerWidget {
   }
 
   // ---------------------------------------------------------------------------
+  // OPEN FREE TIME SCREEN
+  // ---------------------------------------------------------------------------
+
+  void _openFreeTimeScreen(
+    BuildContext context,
+    String familyId,
+    List<UserModel> members,
+    String familyName,
+  ) {
+    final memberIds = members
+        .map((member) => member.id)
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    if (memberIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No family members were found.')),
+      );
+
+      return;
+    }
+
+    final uri = Uri(
+      path: '/free-time',
+      queryParameters: {
+        'familyId': familyId,
+        'memberIds': memberIds.join(','),
+        'familyName': familyName,
+      },
+    );
+
+    context.push(uri.toString());
+  }
+
+  // ---------------------------------------------------------------------------
   // BUILD
   // ---------------------------------------------------------------------------
 
@@ -55,7 +90,6 @@ class FamilyScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Family'),
-
         actions: [
           IconButton(
             onPressed: () => _signOut(context, ref),
@@ -66,16 +100,16 @@ class FamilyScreen extends ConsumerWidget {
       ),
 
       body: familyIdAsync.when(
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // LOADING
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         loading: () {
           return const Center(child: CircularProgressIndicator());
         },
 
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // ERROR
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         error: (error, stack) {
           return Center(
             child: Padding(
@@ -88,9 +122,9 @@ class FamilyScreen extends ConsumerWidget {
           );
         },
 
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // DATA
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         data: (familyId) {
           if (familyId == null) {
             return const Center(
@@ -101,6 +135,7 @@ class FamilyScreen extends ConsumerWidget {
           return _FamilyContent(
             familyId: familyId,
             copyFamilyCode: _copyFamilyCode,
+            openFreeTimeScreen: _openFreeTimeScreen,
           );
         },
       ),
@@ -113,12 +148,24 @@ class FamilyScreen extends ConsumerWidget {
 // =============================================================================
 
 class _FamilyContent extends ConsumerWidget {
-  const _FamilyContent({required this.familyId, required this.copyFamilyCode});
+  const _FamilyContent({
+    required this.familyId,
+    required this.copyFamilyCode,
+    required this.openFreeTimeScreen,
+  });
 
   final String familyId;
 
   final Future<void> Function(BuildContext context, String familyId)
   copyFamilyCode;
+
+  final void Function(
+    BuildContext context,
+    String familyId,
+    List<UserModel> members,
+    String familyName,
+  )
+  openFreeTimeScreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -128,17 +175,17 @@ class _FamilyContent extends ConsumerWidget {
       future: familyService.getFamily(familyId),
 
       builder: (context, familySnapshot) {
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // LOADING FAMILY
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
 
         if (familySnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // FAMILY ERROR
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
 
         if (familySnapshot.hasError) {
           return Center(
@@ -153,9 +200,9 @@ class _FamilyContent extends ConsumerWidget {
           );
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // FAMILY NOT FOUND
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
 
         final family = familySnapshot.data;
 
@@ -163,212 +210,274 @@ class _FamilyContent extends ConsumerWidget {
           return const Center(child: Text('Family could not be found.'));
         }
 
-        // -------------------------------------------------------------
-        // FAMILY PAGE
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
+        // FAMILY MEMBERS
+        // -------------------------------------------------------------------
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
+        return StreamBuilder<List<UserModel>>(
+          stream: familyService.watchFamilyMembers(familyId),
 
-          children: [
-            // =========================================================
-            // FAMILY INFORMATION
-            // =========================================================
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
+          builder: (context, membersSnapshot) {
+            // -----------------------------------------------------------------
+            // LOADING MEMBERS
+            // -----------------------------------------------------------------
 
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            if (membersSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-                  children: [
-                    Text(
-                      family.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+            // -----------------------------------------------------------------
+            // MEMBER ERROR
+            // -----------------------------------------------------------------
 
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Share this code with someone you want '
-                      'to add to your family.',
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Text(
-                      'Family code',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SelectableText(
-                              familyId,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-
-                          IconButton(
-                            onPressed: () {
-                              copyFamilyCode(context, familyId);
-                            },
-                            icon: const Icon(Icons.copy),
-                            tooltip: 'Copy family code',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+            if (membersSnapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'Could not load family members.\n\n'
+                    '${membersSnapshot.error}',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            ),
+              );
+            }
 
-            const SizedBox(height: 24),
+            final members = membersSnapshot.data ?? <UserModel>[];
 
-            // =========================================================
-            // MEMBERS
-            // =========================================================
-            Text('Members', style: Theme.of(context).textTheme.headlineSmall),
+            // -----------------------------------------------------------------
+            // PAGE
+            // -----------------------------------------------------------------
 
-            const SizedBox(height: 8),
+            return ListView(
+              padding: const EdgeInsets.all(16),
 
-            StreamBuilder<List<UserModel>>(
-              stream: familyService.watchFamilyMembers(familyId),
+              children: [
+                // =============================================================
+                // FAMILY INFORMATION
+                // =============================================================
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
 
-              builder: (context, snapshot) {
-                // -----------------------------------------------------
-                // LOADING MEMBERS
-                // -----------------------------------------------------
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(child: CircularProgressIndicator()),
+                      children: [
+                        Text(
+                          family.name,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        const Text(
+                          'Share this code with someone you want '
+                          'to add to your family.',
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Text(
+                          'Family code',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: SelectableText(
+                                  familyId,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+
+                              IconButton(
+                                onPressed: () {
+                                  copyFamilyCode(context, familyId);
+                                },
+                                icon: const Icon(Icons.copy),
+                                tooltip: 'Copy family code',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                ),
 
-                // -----------------------------------------------------
-                // MEMBER ERROR
-                // -----------------------------------------------------
+                const SizedBox(height: 24),
 
-                if (snapshot.hasError) {
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'Could not load members.\n\n'
-                        '${snapshot.error}',
-                      ),
+                // =============================================================
+                // FIND FREE TIME
+                // =============================================================
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 30,
+                            ),
+
+                            const SizedBox(width: 12),
+
+                            Expanded(
+                              child: Text(
+                                'Find Free Time',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        const Text(
+                          'Find times when everyone in your '
+                          'family is available.',
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        SizedBox(
+                          width: double.infinity,
+
+                          child: FilledButton.icon(
+                            onPressed: members.isEmpty
+                                ? null
+                                : () {
+                                    openFreeTimeScreen(
+                                      context,
+                                      familyId,
+                                      members,
+                                      family.name,
+                                    );
+                                  },
+
+                            icon: const Icon(Icons.search),
+
+                            label: const Text('Find Free Time'),
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                ),
 
-                final members = snapshot.data ?? [];
+                const SizedBox(height: 24),
 
-                // -----------------------------------------------------
-                // NO MEMBERS
-                // -----------------------------------------------------
+                // =============================================================
+                // MEMBERS
+                // =============================================================
+                Text(
+                  'Members',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
 
-                if (members.isEmpty) {
-                  return const Card(
+                const SizedBox(height: 8),
+
+                if (members.isEmpty)
+                  const Card(
                     child: Padding(
                       padding: EdgeInsets.all(16),
                       child: Text('No family members yet.'),
                     ),
-                  );
-                }
+                  )
+                else
+                  Card(
+                    child: Column(
+                      children: members.map((member) {
+                        final role = member.role.isEmpty
+                            ? 'Member'
+                            : '${member.role[0].toUpperCase()}'
+                                  '${member.role.substring(1)}';
 
-                // -----------------------------------------------------
-                // MEMBER LIST
-                // -----------------------------------------------------
+                        final subtitle = member.email.isEmpty
+                            ? role
+                            : '$role • ${member.email}';
 
-                return Card(
-                  child: Column(
-                    children: members.map((member) {
-                      final role = member.role.isEmpty
-                          ? 'Member'
-                          : '${member.role[0].toUpperCase()}'
-                                '${member.role.substring(1)}';
-
-                      final subtitle = member.email.isEmpty
-                          ? role
-                          : '$role • ${member.email}';
-
-                      return ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            member.name.isNotEmpty
-                                ? member.name[0].toUpperCase()
-                                : '?',
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(
+                              member.name.isNotEmpty
+                                  ? member.name[0].toUpperCase()
+                                  : '?',
+                            ),
                           ),
-                        ),
 
-                        title: Text(
-                          member.name.isEmpty ? 'Unnamed member' : member.name,
-                        ),
+                          title: Text(
+                            member.name.isEmpty
+                                ? 'Unnamed member'
+                                : member.name,
+                          ),
 
-                        subtitle: Text(subtitle),
-                      );
-                    }).toList(),
+                          subtitle: Text(subtitle),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                );
-              },
-            ),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // =========================================================
-            // SIGN OUT BUTTON
-            // =========================================================
-            SizedBox(
-              width: double.infinity,
+                // =============================================================
+                // SIGN OUT
+                // =============================================================
+                SizedBox(
+                  width: double.infinity,
 
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    await ref.read(authServiceProvider).signOut();
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      try {
+                        await ref.read(authServiceProvider).signOut();
 
-                    if (context.mounted) {
-                      context.go('/login');
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not sign out: $e')),
-                      );
-                    }
-                  }
-                },
+                        if (context.mounted) {
+                          context.go('/login');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Could not sign out: $e')),
+                          );
+                        }
+                      }
+                    },
 
-                icon: const Icon(Icons.logout),
+                    icon: const Icon(Icons.logout),
 
-                label: const Text('Sign out'),
-              ),
-            ),
+                    label: const Text('Sign out'),
+                  ),
+                ),
 
-            const SizedBox(height: 16),
-          ],
+                const SizedBox(height: 16),
+              ],
+            );
+          },
         );
       },
     );
