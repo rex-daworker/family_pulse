@@ -302,6 +302,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get freeTimeRetryButton => 'Try again';
+
+  @override
+  String freeSlotsFoundCount(int count) {
+    return '$count free periods found';
+  }
+
+  @override
   String couldNotCreateEventError(String error) {
     return 'Couldn\'t create event — $error';
   }

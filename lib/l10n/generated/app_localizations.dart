@@ -652,6 +652,18 @@ abstract class AppLocalizations {
   /// **'Schedule at {time}'**
   String scheduleAtTitle(String time);
 
+  /// No description provided for @freeTimeRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get freeTimeRetryButton;
+
+  /// No description provided for @freeSlotsFoundCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} free periods found'**
+  String freeSlotsFoundCount(int count);
+
   /// No description provided for @couldNotCreateEventError.
   ///
   /// In en, this message translates to:

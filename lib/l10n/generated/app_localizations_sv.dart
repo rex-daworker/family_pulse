@@ -303,6 +303,14 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get freeTimeRetryButton => 'Försök igen';
+
+  @override
+  String freeSlotsFoundCount(int count) {
+    return '$count lediga perioder hittades';
+  }
+
+  @override
   String couldNotCreateEventError(String error) {
     return 'Kunde inte skapa händelsen — $error';
   }

@@ -305,6 +305,14 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get freeTimeRetryButton => 'Yritä uudelleen';
+
+  @override
+  String freeSlotsFoundCount(int count) {
+    return '$count vapaata jaksoa löytyi';
+  }
+
+  @override
   String couldNotCreateEventError(String error) {
     return 'Tapahtumaa ei voitu luoda — $error';
   }
