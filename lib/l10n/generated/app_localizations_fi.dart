@@ -305,6 +305,14 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get freeTimeRetryButton => 'Yritä uudelleen';
+
+  @override
+  String freeSlotsFoundCount(int count) {
+    return '$count vapaata jaksoa löytyi';
+  }
+
+  @override
   String couldNotCreateEventError(String error) {
     return 'Tapahtumaa ei voitu luoda — $error';
   }
@@ -744,4 +752,71 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get familyErrorNotFound =>
       'Perhettä ei löytynyt. Tarkista koodi ja yritä uudelleen.';
+
+  @override
+  String get recurrenceLabel => 'Toistuu';
+
+  @override
+  String get recurrenceNone => 'Ei toistu';
+
+  @override
+  String get recurrenceDaily => 'Päivittäin';
+
+  @override
+  String get recurrenceWeekly => 'Viikoittain';
+
+  @override
+  String get recurrenceMonthly => 'Kuukausittain';
+
+  @override
+  String get recurrenceYearly => 'Vuosittain';
+
+  @override
+  String get recurrenceNoEndDate => 'Ei päättymispäivää';
+
+  @override
+  String recurrenceEndsOn(String date) {
+    return 'Päättyy $date';
+  }
+
+  @override
+  String get recurrenceClearEndDate => 'Poista päättymispäivä';
+
+  @override
+  String get partOfRecurringSeriesNote =>
+      'Tämä on yksi tapahtuma toistuvasta sarjasta — muokkaus vaikuttaa vain tähän kertaan, ei koko sarjaan.';
+
+  @override
+  String get reminderLabel => 'Muistutus';
+
+  @override
+  String get reminderOff => 'Ei muistutusta';
+
+  @override
+  String get reminderAtEventTime => 'Tapahtuman alkaessa';
+
+  @override
+  String reminderMinutesBefore(int minutes) {
+    return '$minutes minuuttia ennen';
+  }
+
+  @override
+  String reminderHoursBefore(int hours) {
+    return '$hours tunti ennen';
+  }
+
+  @override
+  String reminderDaysBefore(int days) {
+    return '$days päivä ennen';
+  }
+
+  @override
+  String reminderNotificationTitle(String title) {
+    return 'Tulossa: $title';
+  }
+
+  @override
+  String reminderNotificationBody(String time) {
+    return 'Alkaa klo $time';
+  }
 }

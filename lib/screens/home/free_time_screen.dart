@@ -244,7 +244,24 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
         }
         if (snapshot.hasError) {
           return Center(
-            child: Text(l10n.couldNotLoadFreeTimeError('${snapshot.error}')),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.couldNotLoadFreeTimeError('${snapshot.error}'),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _refresh,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.freeTimeRetryButton),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
@@ -262,11 +279,34 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
           );
         }
 
+        // Index 0 is the summary banner, so slot i lives at index i + 1 —
+        // cheaper than a separate Column+ListView (which would lose
+        // ListView.builder's lazy build) just to show one header row.
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: slots.length,
+          itemCount: slots.length + 1,
           itemBuilder: (context, index) {
-            final slot = slots[index];
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.freeSlotsFoundCount(slots.length),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final slot = slots[index - 1];
             final start = slot['start'] as DateTime;
             final end = slot['end'] as DateTime;
             final duration = slot['duration_minutes'] as int;

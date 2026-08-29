@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/event_categories.dart';
+import 'core/recurrence_options.dart';
+import 'core/reminder_options.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -17,6 +19,7 @@ import 'models/event_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
 import 'providers/settings_provider.dart';
+import 'services/notification_service.dart';
 import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
@@ -50,6 +53,13 @@ void main() async {
   // choice and other persisted settings are available synchronously via
   // sharedPreferencesProvider everywhere else in the app.
   final prefs = await SharedPreferences.getInstance();
+
+  // Sets up the local-notifications plugin (timezone database, Android
+  // notification channel) so it's ready before the calendar screen tries
+  // to schedule any event reminders. Cheap and safe to do unconditionally
+  // — it doesn't prompt the user for permission by itself; see
+  // NotificationService.requestPermission for that.
+  await NotificationService.instance.initialize();
 
   runApp(
     ProviderScope(
@@ -240,6 +250,15 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
   // (before the stream has emitted) has something safe to read.
   Map<DateTime, List<EventModel>> _events = {};
 
+  // Local reminders are only (re-)scheduled for events starting within this
+  // many days — see NotificationService's own doc comment for why trying
+  // to schedule an entire recurring series years in advance isn't viable
+  // (iOS's 64-pending-notification cap). Runs once per time this page is
+  // mounted (i.e. roughly once per app open), which also papers over
+  // Android clearing scheduled alarms on reboot.
+  static const int _reminderResyncHorizonDays = 45;
+  bool _hasResyncedReminders = false;
+
   // ---------------------------------------------------------------------------
   // INIT
   // ---------------------------------------------------------------------------
@@ -274,6 +293,51 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     }
 
     return grouped;
+  }
+
+  // ---------------------------------------------------------------------------
+  // REMINDER SCHEDULING
+  // ---------------------------------------------------------------------------
+
+  // Fires once per mount, from the first successful data load — see
+  // `_hasResyncedReminders`'s doc comment for why a resync on every app
+  // open is the strategy here rather than trying to schedule everything a
+  // recurring series will ever need at creation time.
+  void _maybeResyncReminders(List<EventModel> events, AppLocalizations l10n) {
+    if (_hasResyncedReminders) return;
+    _hasResyncedReminders = true;
+    unawaited(_scheduleRemindersForEvents(events, l10n));
+  }
+
+  // Shared by the startup resync above and by _showEventEditor right after
+  // creating a new (possibly recurring) event — both just need "schedule
+  // whichever of these events have a reminder set and fall inside the
+  // resync horizon", so the filtering logic lives in one place.
+  Future<void> _scheduleRemindersForEvents(
+    List<EventModel> events,
+    AppLocalizations l10n,
+  ) async {
+    final notificationService = ref.read(notificationServiceProvider);
+    await notificationService.requestPermission();
+
+    final now = DateTime.now();
+    final horizon = now.add(const Duration(days: _reminderResyncHorizonDays));
+
+    for (final event in events) {
+      final minutesBefore = event.reminderMinutesBefore;
+      if (minutesBefore == null) continue;
+
+      final start = event.startTime ?? event.date;
+      if (start.isBefore(now) || start.isAfter(horizon)) continue;
+
+      await notificationService.scheduleEventReminder(
+        eventId: event.id,
+        title: l10n.reminderNotificationTitle(event.title),
+        body: l10n.reminderNotificationBody(DateFormat.jm().format(start)),
+        eventTime: start,
+        minutesBefore: minutesBefore,
+      );
+    }
   }
 
   // Sign-out now lives on PulseScreen's app bar (the landing page) — see
@@ -409,6 +473,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
       await ref
           .read(eventServiceProvider)
           .deleteEvent(familyId: familyId, eventId: event.id);
+      // Harmless no-op if this event never had a reminder scheduled —
+      // cancel() on an unknown ID is silently ignored by the plugin.
+      await ref.read(notificationServiceProvider).cancelEventReminder(event.id);
       _showSuccessSnackBar(l10n.eventDeleted(event.title));
     } catch (e) {
       _showErrorSnackBar(l10n.couldNotDeleteEventError(e.toString()));
@@ -440,54 +507,93 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
         event: event,
         initialTime: initialTime,
         onError: _showErrorSnackBar,
-        onSave: (title, description, time, category) async {
-          final familyId = ref.read(currentFamilyIdProvider).value;
-          if (familyId == null) {
-            throw Exception(
-              AppLocalizations.of(context).couldNotFindFamilyRetryError,
-            );
-          }
+        onSave:
+            (
+              title,
+              description,
+              time,
+              category,
+              recurrence,
+              recurrenceEndDate,
+              reminderMinutesBefore,
+            ) async {
+              // Captured before any `await` below — see main.dart's other
+              // dialogs for why touching `context` after an await isn't safe.
+              final l10n = AppLocalizations.of(context);
+              final familyId = ref.read(currentFamilyIdProvider).value;
+              if (familyId == null) {
+                throw Exception(l10n.couldNotFindFamilyRetryError);
+              }
 
-          final eventDate = DateTime(
-            _selectedDate.year,
-            _selectedDate.month,
-            _selectedDate.day,
-            time.hour,
-            time.minute,
-          );
-          final endTime = eventDate.add(const Duration(hours: 1));
+              final eventDate = DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                time.hour,
+                time.minute,
+              );
+              final endTime = eventDate.add(const Duration(hours: 1));
+              final notificationService = ref.read(notificationServiceProvider);
 
-          if (event == null) {
-            await ref
-                .read(eventServiceProvider)
-                .createEvent(
-                  familyId: familyId,
-                  title: title,
-                  category: category,
-                  startTime: eventDate,
-                  endTime: endTime,
-                  description: description,
-                  userName: _currentUserName,
-                );
-          } else {
-            await ref
-                .read(eventServiceProvider)
-                .updateEvent(
-                  familyId: familyId,
-                  eventId: event.id,
-                  updates: {
-                    'title': title,
-                    'description': description,
-                    'category': category,
-                    'date': Timestamp.fromDate(eventDate),
-                    'start_time': Timestamp.fromDate(eventDate),
-                    'end_time': Timestamp.fromDate(endTime),
-                  },
-                );
-          }
+              if (event == null) {
+                final created = await ref
+                    .read(eventServiceProvider)
+                    .createEvent(
+                      familyId: familyId,
+                      title: title,
+                      category: category,
+                      startTime: eventDate,
+                      endTime: endTime,
+                      description: description,
+                      userName: _currentUserName,
+                      recurrence: recurrence,
+                      recurrenceEndDate: recurrenceEndDate,
+                      reminderMinutesBefore: reminderMinutesBefore,
+                    );
+                if (reminderMinutesBefore != null) {
+                  await _scheduleRemindersForEvents(created, l10n);
+                }
+              } else {
+                await ref
+                    .read(eventServiceProvider)
+                    .updateEvent(
+                      familyId: familyId,
+                      eventId: event.id,
+                      updates: {
+                        'title': title,
+                        'description': description,
+                        'category': category,
+                        'date': Timestamp.fromDate(eventDate),
+                        'start_time': Timestamp.fromDate(eventDate),
+                        'end_time': Timestamp.fromDate(endTime),
+                        'reminder_minutes_before': reminderMinutesBefore,
+                      },
+                    );
+                if (reminderMinutesBefore != null) {
+                  await _scheduleRemindersForEvents([
+                    EventModel(
+                      id: event.id,
+                      title: title,
+                      description: description,
+                      date: eventDate,
+                      category: category,
+                      startTime: eventDate,
+                      endTime: endTime,
+                      userId: event.userId,
+                      userName: event.userName,
+                      recurrence: event.recurrence,
+                      recurrenceEndDate: event.recurrenceEndDate,
+                      seriesId: event.seriesId,
+                      reminderMinutesBefore: reminderMinutesBefore,
+                    ),
+                  ], l10n);
+                } else {
+                  await notificationService.cancelEventReminder(event.id);
+                }
+              }
 
-          return eventDate;
-        },
+              return eventDate;
+            },
       ),
     );
 
@@ -511,6 +617,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     return eventsAsync.when(
       data: (events) {
         _events = _groupEventsByDay(events);
+        _maybeResyncReminders(events, AppLocalizations.of(context));
         return _buildCalendarScaffold(context);
       },
       loading: () =>
@@ -815,6 +922,18 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (event.seriesId != null)
+                                Icon(
+                                  Icons.repeat,
+                                  size: 18,
+                                  color: Theme.of(context).hintColor,
+                                ),
+                              if (event.reminderMinutesBefore != null)
+                                Icon(
+                                  Icons.notifications_active_outlined,
+                                  size: 18,
+                                  color: Theme.of(context).hintColor,
+                                ),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined),
                                 tooltip: l10n.editEventTooltip,
@@ -881,11 +1000,18 @@ class _EventEditorDialog extends StatefulWidget {
   // Returns the saved event's date/time on success, so the caller can jump
   // the calendar to it. Throwing surfaces an error without closing the
   // dialog, so the user doesn't lose what they typed.
+  //
+  // `recurrence`/`recurrenceEndDate` are only ever non-default when
+  // creating a brand new event — see the recurrence picker below for why
+  // it's hidden (rather than just disabled) once an event already exists.
   final Future<DateTime> Function(
     String title,
     String description,
     TimeOfDay time,
     String category,
+    String recurrence,
+    DateTime? recurrenceEndDate,
+    int? reminderMinutesBefore,
   )
   onSave;
 
@@ -900,6 +1026,9 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
   late final TextEditingController _descriptionController;
   late TimeOfDay _selectedTime;
   late String _selectedCategory;
+  late String _selectedRecurrence;
+  DateTime? _recurrenceEndDate;
+  int? _selectedReminder;
 
   String? _titleError;
   bool _isSaving = false;
@@ -915,6 +1044,12 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
     _selectedCategory = kEventCategories.contains(widget.event?.category)
         ? widget.event!.category
         : 'other';
+    // Recurrence is only ever set at creation time (see the picker's own
+    // comment below), so an existing event's dialog always starts on
+    // 'none' regardless of whether that event is itself part of a series.
+    _selectedRecurrence = 'none';
+    _recurrenceEndDate = null;
+    _selectedReminder = widget.event?.reminderMinutesBefore;
   }
 
   @override
@@ -934,6 +1069,23 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
       setState(() {
         _selectedTime = time;
       });
+    }
+  }
+
+  Future<void> _pickRecurrenceEndDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _recurrenceEndDate ?? now.add(const Duration(days: 30)),
+      firstDate: now,
+      // Matches EventService's own materialization cap — an end date
+      // further out than this wouldn't generate any additional
+      // occurrences anyway.
+      lastDate: now.add(const Duration(days: 366)),
+    );
+
+    if (picked != null && mounted) {
+      setState(() => _recurrenceEndDate = picked);
     }
   }
 
@@ -963,6 +1115,9 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
         _descriptionController.text.trim(),
         _selectedTime,
         _selectedCategory,
+        _selectedRecurrence,
+        _recurrenceEndDate,
+        _selectedReminder,
       );
 
       if (mounted) {
@@ -991,80 +1146,185 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
 
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              maxLength: 60,
-              decoration: InputDecoration(
-                labelText: l10n.titleFieldLabel,
-                errorText: _titleError,
-                isDense: true,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                maxLength: 60,
+                decoration: InputDecoration(
+                  labelText: l10n.titleFieldLabel,
+                  errorText: _titleError,
+                  isDense: true,
+                ),
+                onChanged: (_) {
+                  if (_titleError != null) {
+                    setState(() {
+                      _titleError = null;
+                    });
+                  }
+                },
               ),
-              onChanged: (_) {
-                if (_titleError != null) {
-                  setState(() {
-                    _titleError = null;
-                  });
-                }
-              },
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: l10n.notesLabel,
-                isDense: true,
-                alignLabelWithHint: true,
+              TextField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: l10n.notesLabel,
+                  isDense: true,
+                  alignLabelWithHint: true,
+                ),
+                minLines: 1,
+                maxLines: 3,
+                maxLength: 300,
               ),
-              minLines: 1,
-              maxLines: 3,
-              maxLength: 300,
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.categoryLabel,
-                style: Theme.of(context).textTheme.labelMedium,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.categoryLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: kEventCategories.map((category) {
-                final meta = categoryMeta(context, category);
-                final selected = _selectedCategory == category;
-                return ChoiceChip(
-                  avatar: Icon(
-                    meta.icon,
-                    size: 18,
-                    color: selected ? Colors.white : meta.color,
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: kEventCategories.map((category) {
+                  final meta = categoryMeta(context, category);
+                  final selected = _selectedCategory == category;
+                  return ChoiceChip(
+                    avatar: Icon(
+                      meta.icon,
+                      size: 18,
+                      color: selected ? Colors.white : meta.color,
+                    ),
+                    label: Text(meta.label),
+                    selected: selected,
+                    selectedColor: meta.color,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : null,
+                    ),
+                    onSelected: (_) {
+                      setState(() => _selectedCategory = category);
+                    },
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 12),
+
+              OutlinedButton.icon(
+                onPressed: _pickTime,
+                icon: const Icon(Icons.access_time),
+                label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
+              ),
+
+              // Recurrence can only be set when an event is first created —
+              // an occurrence generated from a series is just a normal event
+              // document afterwards (see EventService), so there's no single
+              // well-defined meaning for "change the recurrence" on one
+              // existing occurrence. A series that already exists shows a
+              // plain status note lower down instead of this picker.
+              if (widget.event == null) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.recurrenceLabel,
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
-                  label: Text(meta.label),
-                  selected: selected,
-                  selectedColor: meta.color,
-                  labelStyle: TextStyle(color: selected ? Colors.white : null),
-                  onSelected: (_) {
-                    setState(() => _selectedCategory = category);
-                  },
-                );
-              }).toList(),
-            ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children: kRecurrenceOptions.map((option) {
+                    final selected = _selectedRecurrence == option;
+                    return ChoiceChip(
+                      label: Text(recurrenceDisplayName(l10n, option)),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedRecurrence = option;
+                          if (option == 'none') _recurrenceEndDate = null;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                if (_selectedRecurrence != 'none') ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _pickRecurrenceEndDate,
+                    icon: const Icon(Icons.event_busy),
+                    label: Text(
+                      _recurrenceEndDate == null
+                          ? l10n.recurrenceNoEndDate
+                          : l10n.recurrenceEndsOn(
+                              DateFormat.yMMMd().format(_recurrenceEndDate!),
+                            ),
+                    ),
+                  ),
+                  if (_recurrenceEndDate != null)
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _recurrenceEndDate = null),
+                      child: Text(l10n.recurrenceClearEndDate),
+                    ),
+                ],
+              ] else if (widget.event!.seriesId != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.repeat, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        l10n.partOfRecurringSeriesNote,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
-            const SizedBox(height: 12),
-
-            OutlinedButton.icon(
-              onPressed: _pickTime,
-              icon: const Icon(Icons.access_time),
-              label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.reminderLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: kReminderOffsets.map((offset) {
+                  final selected = _selectedReminder == offset;
+                  return ChoiceChip(
+                    avatar: offset == null
+                        ? null
+                        : Icon(
+                            Icons.notifications_active,
+                            size: 18,
+                            color: selected ? Colors.white : null,
+                          ),
+                    label: Text(reminderOffsetDisplayName(l10n, offset)),
+                    selected: selected,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : null,
+                    ),
+                    onSelected: (_) {
+                      setState(() => _selectedReminder = offset);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
 

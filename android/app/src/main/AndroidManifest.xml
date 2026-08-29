@@ -4,6 +4,19 @@
          intent instead of just falling back to gallery-only. -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Android 13+ requires this runtime permission before any
+         notification (including our event reminders) can be shown at
+         all — requested at runtime via NotificationService.requestPermission. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Deliberately NOT requesting SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM:
+         reminders are scheduled with AndroidScheduleMode.inexactAllowWhileIdle
+         (a few minutes of slack is fine for "don't forget about soccer
+         practice"), which needs no special alarm permission. A reboot
+         clears any alarms Android had scheduled; NotificationService's
+         resync-on-app-open is the mitigation for that, not a boot
+         receiver. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:label="family_pulse"
         android:name="${applicationName}"

@@ -102,6 +102,11 @@
   "freeForEveryone": "{duration} minuuttia, vapaata kaikille",
   "scheduleButton": "Ajoita",
   "scheduleAtTitle": "Ajoita klo {time}",
+  "freeTimeRetryButton": "Yritä uudelleen",
+  "freeSlotsFoundCount": "{count} vapaata jaksoa löytyi",
+  "@freeSlotsFoundCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "couldNotCreateEventError": "Tapahtumaa ei voitu luoda — {error}",
   "couldNotLoadFamilyMembersError": "Perheenjäseniä ei voitu ladata — {error}",
   "couldNotLoadYourFamilyError": "Perhettäsi ei voitu ladata — {error}",
@@ -240,5 +245,42 @@
   "authErrorInvalidEmail": "Anna kelvollinen sähköpostiosoite.",
   "authErrorNotSignedIn": "Sinun täytyy olla kirjautuneena tehdäksesi tämän.",
   "authErrorUnknown": "Jotain meni pieleen. Yritä uudelleen.",
-  "familyErrorNotFound": "Perhettä ei löytynyt. Tarkista koodi ja yritä uudelleen."
+  "familyErrorNotFound": "Perhettä ei löytynyt. Tarkista koodi ja yritä uudelleen.",
+
+  "recurrenceLabel": "Toistuu",
+  "recurrenceNone": "Ei toistu",
+  "recurrenceDaily": "Päivittäin",
+  "recurrenceWeekly": "Viikoittain",
+  "recurrenceMonthly": "Kuukausittain",
+  "recurrenceYearly": "Vuosittain",
+  "recurrenceNoEndDate": "Ei päättymispäivää",
+  "recurrenceEndsOn": "Päättyy {date}",
+  "@recurrenceEndsOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "recurrenceClearEndDate": "Poista päättymispäivä",
+  "partOfRecurringSeriesNote": "Tämä on yksi tapahtuma toistuvasta sarjasta — muokkaus vaikuttaa vain tähän kertaan, ei koko sarjaan.",
+  "reminderLabel": "Muistutus",
+  "reminderOff": "Ei muistutusta",
+  "reminderAtEventTime": "Tapahtuman alkaessa",
+  "reminderMinutesBefore": "{minutes} minuuttia ennen",
+  "@reminderMinutesBefore": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "reminderHoursBefore": "{hours} tunti ennen",
+  "@reminderHoursBefore": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "reminderDaysBefore": "{days} päivä ennen",
+  "@reminderDaysBefore": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "reminderNotificationTitle": "Tulossa: {title}",
+  "@reminderNotificationTitle": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+  "reminderNotificationBody": "Alkaa klo {time}",
+  "@reminderNotificationBody": {
+    "placeholders": { "time": { "type": "String" } }
+  }
 }
