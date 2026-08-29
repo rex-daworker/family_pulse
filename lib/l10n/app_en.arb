@@ -122,6 +122,11 @@
   },
   "scheduleButton": "Schedule",
   "scheduleAtTitle": "Schedule at {time}",
+  "freeTimeRetryButton": "Try again",
+  "freeSlotsFoundCount": "{count} free periods found",
+  "@freeSlotsFoundCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "@scheduleAtTitle": {
     "placeholders": { "time": { "type": "String" } }
   },

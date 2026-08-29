@@ -102,6 +102,11 @@
   "freeForEveryone": "{duration} minuuttia, vapaata kaikille",
   "scheduleButton": "Ajoita",
   "scheduleAtTitle": "Ajoita klo {time}",
+  "freeTimeRetryButton": "Yritä uudelleen",
+  "freeSlotsFoundCount": "{count} vapaata jaksoa löytyi",
+  "@freeSlotsFoundCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "couldNotCreateEventError": "Tapahtumaa ei voitu luoda — {error}",
   "couldNotLoadFamilyMembersError": "Perheenjäseniä ei voitu ladata — {error}",
   "couldNotLoadYourFamilyError": "Perhettäsi ei voitu ladata — {error}",

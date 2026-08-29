@@ -102,6 +102,11 @@
   "freeForEveryone": "{duration} minuter, ledigt för alla",
   "scheduleButton": "Boka",
   "scheduleAtTitle": "Boka kl. {time}",
+  "freeTimeRetryButton": "Försök igen",
+  "freeSlotsFoundCount": "{count} lediga perioder hittades",
+  "@freeSlotsFoundCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "couldNotCreateEventError": "Kunde inte skapa händelsen — {error}",
   "couldNotLoadFamilyMembersError": "Kunde inte läsa in familjemedlemmar — {error}",
   "couldNotLoadYourFamilyError": "Kunde inte läsa in din familj — {error}",
