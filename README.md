@@ -17,10 +17,12 @@ A Flutter + Firebase family calendar app that finds shared free time across scho
 
 | | | |
 |---|---|---|
-| ![Family calendar](docs/screenshots/pulse_calendar.png) | ![Add event dialog](docs/screenshots/event_editor.png) | ![Free time finder](docs/screenshots/free_time.png) |
-| Family calendar (Pulse) | Add/edit event — recurrence + reminder | Free-time finder |
-| ![Family screen](docs/screenshots/family_screen.png) | ![Profile](docs/screenshots/profile_screen.png) | ![Analytics](docs/screenshots/analytics_screen.png) |
-| Family code + member roster | Profile — photo, age, gender | Analytics |
+| ![Family calendar](docs/screenshots/pulse_calendar.png) | ![Free time finder](docs/screenshots/free_time.png) | ![Analytics](docs/screenshots/analytics_screen.png) |
+| Family calendar (Pulse) | Free-time finder | Analytics |
+| ![Family roster](docs/screenshots/family_screen.png) | ![Family groups](docs/screenshots/groups_screen.png) | ![Edit event dialog](docs/screenshots/event_editor.png) |
+| Family code + member roster | Family groups | Edit event — reminder picker |
+| ![Profile](docs/screenshots/profile_screen.png) | ![Navigation menu](docs/screenshots/nav_drawer.png) | ![Reminder permission prompt](docs/screenshots/notifications_permission.png) |
+| Profile — age, gender | Navigation menu | Reminder permission prompt |
 
 ---
 
