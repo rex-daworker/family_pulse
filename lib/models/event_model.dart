@@ -87,8 +87,7 @@ class EventModel {
           ? recurrenceEndValue.toDate()
           : null,
       seriesId: data['series_id'] as String?,
-      reminderMinutesBefore: (data['reminder_minutes_before'] as num?)
-          ?.toInt(),
+      reminderMinutesBefore: (data['reminder_minutes_before'] as num?)?.toInt(),
     );
   }
 

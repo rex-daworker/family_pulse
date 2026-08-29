@@ -321,9 +321,7 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     await notificationService.requestPermission();
 
     final now = DateTime.now();
-    final horizon = now.add(
-      const Duration(days: _reminderResyncHorizonDays),
-    );
+    final horizon = now.add(const Duration(days: _reminderResyncHorizonDays));
 
     for (final event in events) {
       final minutesBefore = event.reminderMinutesBefore;
@@ -1150,178 +1148,182 @@ class _EventEditorDialogState extends State<_EventEditorDialog> {
         width: double.maxFinite,
         child: SingleChildScrollView(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleController,
-              maxLength: 60,
-              decoration: InputDecoration(
-                labelText: l10n.titleFieldLabel,
-                errorText: _titleError,
-                isDense: true,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                maxLength: 60,
+                decoration: InputDecoration(
+                  labelText: l10n.titleFieldLabel,
+                  errorText: _titleError,
+                  isDense: true,
+                ),
+                onChanged: (_) {
+                  if (_titleError != null) {
+                    setState(() {
+                      _titleError = null;
+                    });
+                  }
+                },
               ),
-              onChanged: (_) {
-                if (_titleError != null) {
-                  setState(() {
-                    _titleError = null;
-                  });
-                }
-              },
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: l10n.notesLabel,
-                isDense: true,
-                alignLabelWithHint: true,
+              TextField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: l10n.notesLabel,
+                  isDense: true,
+                  alignLabelWithHint: true,
+                ),
+                minLines: 1,
+                maxLines: 3,
+                maxLength: 300,
               ),
-              minLines: 1,
-              maxLines: 3,
-              maxLength: 300,
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.categoryLabel,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: kEventCategories.map((category) {
-                final meta = categoryMeta(context, category);
-                final selected = _selectedCategory == category;
-                return ChoiceChip(
-                  avatar: Icon(
-                    meta.icon,
-                    size: 18,
-                    color: selected ? Colors.white : meta.color,
-                  ),
-                  label: Text(meta.label),
-                  selected: selected,
-                  selectedColor: meta.color,
-                  labelStyle: TextStyle(color: selected ? Colors.white : null),
-                  onSelected: (_) {
-                    setState(() => _selectedCategory = category);
-                  },
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 12),
-
-            OutlinedButton.icon(
-              onPressed: _pickTime,
-              icon: const Icon(Icons.access_time),
-              label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
-            ),
-
-            // Recurrence can only be set when an event is first created —
-            // an occurrence generated from a series is just a normal event
-            // document afterwards (see EventService), so there's no single
-            // well-defined meaning for "change the recurrence" on one
-            // existing occurrence. A series that already exists shows a
-            // plain status note lower down instead of this picker.
-            if (widget.event == null) ...[
-              const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  l10n.recurrenceLabel,
+                  l10n.categoryLabel,
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
               ),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 8,
-                children: kRecurrenceOptions.map((option) {
-                  final selected = _selectedRecurrence == option;
+                children: kEventCategories.map((category) {
+                  final meta = categoryMeta(context, category);
+                  final selected = _selectedCategory == category;
                   return ChoiceChip(
-                    label: Text(recurrenceDisplayName(l10n, option)),
+                    avatar: Icon(
+                      meta.icon,
+                      size: 18,
+                      color: selected ? Colors.white : meta.color,
+                    ),
+                    label: Text(meta.label),
                     selected: selected,
+                    selectedColor: meta.color,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : null,
+                    ),
                     onSelected: (_) {
-                      setState(() {
-                        _selectedRecurrence = option;
-                        if (option == 'none') _recurrenceEndDate = null;
-                      });
+                      setState(() => _selectedCategory = category);
                     },
                   );
                 }).toList(),
               ),
-              if (_selectedRecurrence != 'none') ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _pickRecurrenceEndDate,
-                  icon: const Icon(Icons.event_busy),
-                  label: Text(
-                    _recurrenceEndDate == null
-                        ? l10n.recurrenceNoEndDate
-                        : l10n.recurrenceEndsOn(
-                            DateFormat.yMMMd().format(_recurrenceEndDate!),
-                          ),
+
+              const SizedBox(height: 12),
+
+              OutlinedButton.icon(
+                onPressed: _pickTime,
+                icon: const Icon(Icons.access_time),
+                label: Text(l10n.eventTimeLabel(_selectedTime.format(context))),
+              ),
+
+              // Recurrence can only be set when an event is first created —
+              // an occurrence generated from a series is just a normal event
+              // document afterwards (see EventService), so there's no single
+              // well-defined meaning for "change the recurrence" on one
+              // existing occurrence. A series that already exists shows a
+              // plain status note lower down instead of this picker.
+              if (widget.event == null) ...[
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    l10n.recurrenceLabel,
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
                 ),
-                if (_recurrenceEndDate != null)
-                  TextButton(
-                    onPressed: () =>
-                        setState(() => _recurrenceEndDate = null),
-                    child: Text(l10n.recurrenceClearEndDate),
-                  ),
-              ],
-            ] else if (widget.event!.seriesId != null) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Icon(Icons.repeat, size: 18),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      l10n.partOfRecurringSeriesNote,
-                      style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  children: kRecurrenceOptions.map((option) {
+                    final selected = _selectedRecurrence == option;
+                    return ChoiceChip(
+                      label: Text(recurrenceDisplayName(l10n, option)),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedRecurrence = option;
+                          if (option == 'none') _recurrenceEndDate = null;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                if (_selectedRecurrence != 'none') ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: _pickRecurrenceEndDate,
+                    icon: const Icon(Icons.event_busy),
+                    label: Text(
+                      _recurrenceEndDate == null
+                          ? l10n.recurrenceNoEndDate
+                          : l10n.recurrenceEndsOn(
+                              DateFormat.yMMMd().format(_recurrenceEndDate!),
+                            ),
                     ),
                   ),
+                  if (_recurrenceEndDate != null)
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _recurrenceEndDate = null),
+                      child: Text(l10n.recurrenceClearEndDate),
+                    ),
                 ],
+              ] else if (widget.event!.seriesId != null) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.repeat, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        l10n.partOfRecurringSeriesNote,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.reminderLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: kReminderOffsets.map((offset) {
+                  final selected = _selectedReminder == offset;
+                  return ChoiceChip(
+                    avatar: offset == null
+                        ? null
+                        : Icon(
+                            Icons.notifications_active,
+                            size: 18,
+                            color: selected ? Colors.white : null,
+                          ),
+                    label: Text(reminderOffsetDisplayName(l10n, offset)),
+                    selected: selected,
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.white : null,
+                    ),
+                    onSelected: (_) {
+                      setState(() => _selectedReminder = offset);
+                    },
+                  );
+                }).toList(),
               ),
             ],
-
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.reminderLabel,
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: kReminderOffsets.map((offset) {
-                final selected = _selectedReminder == offset;
-                return ChoiceChip(
-                  avatar: offset == null
-                      ? null
-                      : Icon(
-                          Icons.notifications_active,
-                          size: 18,
-                          color: selected ? Colors.white : null,
-                        ),
-                  label: Text(reminderOffsetDisplayName(l10n, offset)),
-                  selected: selected,
-                  labelStyle: TextStyle(color: selected ? Colors.white : null),
-                  onSelected: (_) {
-                    setState(() => _selectedReminder = offset);
-                  },
-                );
-              }).toList(),
-            ),
-          ],
           ),
         ),
       ),

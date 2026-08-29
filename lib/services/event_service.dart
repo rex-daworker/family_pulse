@@ -92,9 +92,7 @@ class EventService {
 
     // A one-off event doesn't need a series_id at all — only stamp one
     // when there's actually more than one occurrence to tie together.
-    final seriesId = occurrenceStarts.length > 1
-        ? eventsRef.doc().id
-        : null;
+    final seriesId = occurrenceStarts.length > 1 ? eventsRef.doc().id : null;
 
     final batch = _firestore.batch();
     final created = <EventModel>[];

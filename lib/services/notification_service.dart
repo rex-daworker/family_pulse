@@ -39,7 +39,7 @@ class NotificationService {
     tz_data.initializeTimeZones();
     try {
       final localTimezone = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(localTimezone));
+      tz.setLocalLocation(tz.getLocation(localTimezone.identifier));
     } catch (_) {
       // Fall back to whatever the timezone database considers UTC rather
       // than crashing app start over a timezone lookup failing on some
@@ -47,9 +47,7 @@ class NotificationService {
       // next successful resync.
     }
 
-    const androidInit = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -57,7 +55,10 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
+      settings: const InitializationSettings(
+        android: androidInit,
+        iOS: iosInit,
+      ),
     );
 
     await _plugin
@@ -119,11 +120,11 @@ class NotificationService {
     }
 
     await _plugin.zonedSchedule(
-      notificationIdFor(eventId),
-      title,
-      body,
-      tz.TZDateTime.from(fireTime, tz.local),
-      const NotificationDetails(
+      id: notificationIdFor(eventId),
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.from(fireTime, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -139,6 +140,6 @@ class NotificationService {
 
   Future<void> cancelEventReminder(String eventId) async {
     if (!_initialized) return;
-    await _plugin.cancel(notificationIdFor(eventId));
+    await _plugin.cancel(id: notificationIdFor(eventId));
   }
 }
