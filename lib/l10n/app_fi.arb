@@ -282,5 +282,47 @@
   "reminderNotificationBody": "Alkaa klo {time}",
   "@reminderNotificationBody": {
     "placeholders": { "time": { "type": "String" } }
+  },
+
+  "weatherHeader": "Perheen sijainti",
+  "weatherLocationSubtitle": "Näytetään sään kalenterissasi",
+  "weatherNotSetLabel": "Sijaintia ei ole asetettu",
+  "weatherSetLocationButton": "Aseta sijainti",
+  "weatherChangeLocationTooltip": "Vaihda sijainti",
+  "weatherClearLocationTooltip": "Poista sijainti",
+  "weatherRemoveLocationConfirm": "Poistetaanko perheen sään sijainti? Voit asettaa uuden milloin tahansa.",
+  "weatherSearchDialogTitle": "Perheen sijainti",
+  "weatherSearchHint": "Näytetään 7 päivän sääennuste kalenterissasi, jotta voitte suunnitella sään mukaan.",
+  "weatherSearchFieldLabel": "Kaupunki tai kunta",
+  "weatherSearchButton": "Hae",
+  "weatherSearchNoResults": "Vastaavia paikkoja ei löytynyt",
+  "weatherSearchFailedError": "Hakua ei voitu suorittaa — tarkista verkkoyhteytesi ja yritä uudelleen",
+  "weatherLocationSaved": "Sijainti tallennettu",
+  "weatherLocationRemoved": "Sijainti poistettu",
+  "couldNotUpdateLocationError": "Sijaintia ei voitu päivittää: {error}",
+  "@couldNotUpdateLocationError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "weatherClear": "Selkeää",
+  "weatherPartlyCloudy": "Puolipilvistä",
+  "weatherOvercast": "Pilvistä",
+  "weatherFog": "Sumua",
+  "weatherDrizzle": "Tihkusadetta",
+  "weatherRain": "Sadetta",
+  "weatherSnow": "Lunta",
+  "weatherThunderstorm": "Ukkosta",
+  "weatherDaySummary": "{description} · {tempMax}°/{tempMin}°C · {rainChance}% sadetta",
+  "@weatherDaySummary": {
+    "placeholders": {
+      "description": { "type": "String" },
+      "tempMax": { "type": "int" },
+      "tempMin": { "type": "int" },
+      "rainChance": { "type": "int" }
+    }
+  },
+  "rainRiskTooltip": "{percent}% sadetodennäköisyys",
+  "@rainRiskTooltip": {
+    "placeholders": { "percent": { "type": "int" } }
   }
 }

@@ -226,4 +226,19 @@ class FamilyService {
         .doc(groupId)
         .delete();
   }
+
+  // 7. Set (or clear, when location is null) the family's shared weather
+  // location. Firestore rules restrict the `weather_location` field
+  // specifically to members with role 'parent' — see firestore.rules — so
+  // a non-parent calling this gets PERMISSION_DENIED from Firestore itself,
+  // not just a hidden Settings control. The Settings UI still hides the
+  // controls from non-parents so that denial is never actually hit.
+  Future<void> updateWeatherLocation({
+    required String familyId,
+    required FamilyWeatherLocation? location,
+  }) async {
+    await _firestore.collection('families').doc(familyId).update({
+      'weather_location': location?.toMap(),
+    });
+  }
 }

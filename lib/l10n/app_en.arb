@@ -377,5 +377,47 @@
   "reminderNotificationBody": "Starts at {time}",
   "@reminderNotificationBody": {
     "placeholders": { "time": { "type": "String" } }
+  },
+
+  "weatherHeader": "Family location",
+  "weatherLocationSubtitle": "Used to show weather on your calendar",
+  "weatherNotSetLabel": "No location set",
+  "weatherSetLocationButton": "Set location",
+  "weatherChangeLocationTooltip": "Change location",
+  "weatherClearLocationTooltip": "Remove location",
+  "weatherRemoveLocationConfirm": "Remove the family's weather location? You can set a new one anytime.",
+  "weatherSearchDialogTitle": "Family location",
+  "weatherSearchHint": "Used to show a 7-day forecast on your calendar so you can plan around the weather.",
+  "weatherSearchFieldLabel": "City or town",
+  "weatherSearchButton": "Search",
+  "weatherSearchNoResults": "No matching places found",
+  "weatherSearchFailedError": "Couldn't search locations — check your connection and try again",
+  "weatherLocationSaved": "Location saved",
+  "weatherLocationRemoved": "Location removed",
+  "couldNotUpdateLocationError": "Could not update location: {error}",
+  "@couldNotUpdateLocationError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "weatherClear": "Clear",
+  "weatherPartlyCloudy": "Partly cloudy",
+  "weatherOvercast": "Overcast",
+  "weatherFog": "Fog",
+  "weatherDrizzle": "Drizzle",
+  "weatherRain": "Rain",
+  "weatherSnow": "Snow",
+  "weatherThunderstorm": "Thunderstorm",
+  "weatherDaySummary": "{description} · {tempMax}°/{tempMin}°C · {rainChance}% rain",
+  "@weatherDaySummary": {
+    "placeholders": {
+      "description": { "type": "String" },
+      "tempMax": { "type": "int" },
+      "tempMin": { "type": "int" },
+      "rainChance": { "type": "int" }
+    }
+  },
+  "rainRiskTooltip": "{percent}% chance of rain",
+  "@rainRiskTooltip": {
+    "placeholders": { "percent": { "type": "int" } }
   }
 }
