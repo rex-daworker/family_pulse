@@ -399,12 +399,10 @@ class _WeatherLocationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    // Nothing to show a non-parent yet, and they can't set one anyway —
-    // don't clutter Settings with a control that would just deny them.
-    if (location == null && !isParent) {
-      return const SizedBox.shrink();
-    }
-
+    // Always show the row, even to non-parents with nothing set yet — a
+    // section header with nothing under it reads as broken, and a child
+    // account should still be able to see *why* their calendar has no
+    // weather on it. Only the edit/remove controls below are parent-only.
     return ListTile(
       leading: const Icon(Icons.location_on_outlined),
       title: Text(location?.name ?? l10n.weatherNotSetLabel),
