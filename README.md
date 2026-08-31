@@ -21,8 +21,8 @@ A Flutter + Firebase family calendar app that finds shared free time across scho
 | Family calendar (Pulse) | Free-time finder | Analytics |
 | ![Family roster](docs/screenshots/family_screen.png) | ![Family groups](docs/screenshots/groups_screen.png) | ![Edit event dialog](docs/screenshots/event_editor.png) |
 | Family code + member roster | Family groups | Edit event — reminder picker |
-| ![Profile](docs/screenshots/profile_screen.png) | ![Navigation menu](docs/screenshots/nav_drawer.png) | ![Reminder permission prompt](docs/screenshots/notifications_permission.png) |
-| Profile — age, gender | Navigation menu | Reminder permission prompt |
+| ![Profile](docs/screenshots/profile_screen.png) | ![Family location set](docs/screenshots/weather_location.png) | ![Weather on the calendar](docs/screenshots/weather_calendar.png) |
+| Profile — age, gender | Family location — set once by a parent | Weather forecast on the calendar |
 
 ---
 
