@@ -57,6 +57,9 @@ dependencies:
   flutter_local_notifications: ^22.3.0
   timezone: ^0.11.1
   flutter_timezone: ^5.1.0
+  # Weather forecast — plain HTTP GETs against Open-Meteo (free, no API
+  # key). See lib/services/weather_service.dart for why this provider.
+  http: ^1.2.2
   # UI
 
   # The following adds the Cupertino Icons font to your application.

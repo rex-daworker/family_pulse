@@ -818,4 +818,97 @@ class AppLocalizationsSv extends AppLocalizations {
   String reminderNotificationBody(String time) {
     return 'Börjar $time';
   }
+
+  @override
+  String get weatherHeader => 'Familjens plats';
+
+  @override
+  String get weatherLocationSubtitle =>
+      'Används för att visa väder i din kalender';
+
+  @override
+  String get weatherNotSetLabel => 'Ingen plats vald';
+
+  @override
+  String get weatherSetLocationButton => 'Ange plats';
+
+  @override
+  String get weatherChangeLocationTooltip => 'Byt plats';
+
+  @override
+  String get weatherClearLocationTooltip => 'Ta bort plats';
+
+  @override
+  String get weatherRemoveLocationConfirm =>
+      'Ta bort familjens väderplats? Du kan ange en ny när som helst.';
+
+  @override
+  String get weatherSearchDialogTitle => 'Familjens plats';
+
+  @override
+  String get weatherSearchHint =>
+      'Visar en 7-dagarsprognos i din kalender så att ni kan planera efter vädret.';
+
+  @override
+  String get weatherSearchFieldLabel => 'Stad eller ort';
+
+  @override
+  String get weatherSearchButton => 'Sök';
+
+  @override
+  String get weatherSearchNoResults => 'Inga matchande platser hittades';
+
+  @override
+  String get weatherSearchFailedError =>
+      'Kunde inte söka platser — kontrollera din anslutning och försök igen';
+
+  @override
+  String get weatherLocationSaved => 'Plats sparad';
+
+  @override
+  String get weatherLocationRemoved => 'Plats borttagen';
+
+  @override
+  String couldNotUpdateLocationError(String error) {
+    return 'Kunde inte uppdatera platsen: $error';
+  }
+
+  @override
+  String get weatherClear => 'Klart';
+
+  @override
+  String get weatherPartlyCloudy => 'Delvis molnigt';
+
+  @override
+  String get weatherOvercast => 'Mulet';
+
+  @override
+  String get weatherFog => 'Dimma';
+
+  @override
+  String get weatherDrizzle => 'Duggregn';
+
+  @override
+  String get weatherRain => 'Regn';
+
+  @override
+  String get weatherSnow => 'Snö';
+
+  @override
+  String get weatherThunderstorm => 'Åska';
+
+  @override
+  String weatherDaySummary(
+    String description,
+    int tempMax,
+    int tempMin,
+    int rainChance,
+  ) {
+    return '$description · $tempMax°/$tempMin°C · $rainChance% regn';
+  }
+
+  @override
+  String rainRiskTooltip(int percent) {
+    return '$percent% chans för regn';
+  }
 }

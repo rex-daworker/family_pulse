@@ -4,13 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/error_messages.dart';
+import '../../core/family_roles.dart';
 import '../../core/sign_out.dart';
 import '../../core/theme/app_theme.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/family_member_model.dart';
+import '../../models/family_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/weather_provider.dart';
 import '../../widgets/name_label_dialog.dart';
+import '../../widgets/weather_location_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -193,6 +197,14 @@ class SettingsScreen extends ConsumerWidget {
 
           const Divider(height: 32),
 
+          _SectionHeader(l10n.weatherHeader),
+          _WeatherLocationTile(
+            location: familyAsync.value?.weatherLocation,
+            isParent: ownMember != null && isParentRole(ownMember.role),
+          ),
+
+          const Divider(height: 32),
+
           _SectionHeader(l10n.calendarHeader),
           SwitchListTile(
             title: Text(l10n.showEmptyDaysTitle),
@@ -370,6 +382,131 @@ class _PaletteOption extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Shows the family's saved weather-forecast location, with edit/remove
+// controls visible only to parents — mirrors Family Groups' pencil+trash
+// icon pairing rather than folding "remove" into the search dialog, so the
+// dialog itself only ever has one job (pick a place).
+class _WeatherLocationTile extends ConsumerWidget {
+  const _WeatherLocationTile({required this.location, required this.isParent});
+
+  final FamilyWeatherLocation? location;
+  final bool isParent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+
+    // Nothing to show a non-parent yet, and they can't set one anyway —
+    // don't clutter Settings with a control that would just deny them.
+    if (location == null && !isParent) {
+      return const SizedBox.shrink();
+    }
+
+    return ListTile(
+      leading: const Icon(Icons.location_on_outlined),
+      title: Text(location?.name ?? l10n.weatherNotSetLabel),
+      subtitle: Text(l10n.weatherLocationSubtitle),
+      trailing: !isParent
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: location == null
+                      ? l10n.weatherSetLocationButton
+                      : l10n.weatherChangeLocationTooltip,
+                  onPressed: () => _editLocation(context, ref),
+                ),
+                if (location != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: l10n.weatherClearLocationTooltip,
+                    onPressed: () => _removeLocation(context, ref),
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Future<void> _saveLocation(
+    BuildContext context,
+    WidgetRef ref,
+    FamilyWeatherLocation? newLocation,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final familyId = ref.read(currentFamilyIdProvider).value;
+    if (familyId == null) return;
+
+    try {
+      await ref
+          .read(familyServiceProvider)
+          .updateWeatherLocation(familyId: familyId, location: newLocation);
+      ref.invalidate(currentFamilyProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newLocation == null
+                  ? l10n.weatherLocationRemoved
+                  : l10n.weatherLocationSaved,
+            ),
+            backgroundColor: newLocation == null ? null : Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.couldNotUpdateLocationError(
+                localizedErrorMessage(context, e),
+              ),
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _editLocation(BuildContext context, WidgetRef ref) async {
+    final weatherService = ref.read(weatherServiceProvider);
+    final result = await showDialog<FamilyWeatherLocation>(
+      context: context,
+      builder: (_) => WeatherLocationDialog(weatherService: weatherService),
+    );
+
+    if (result == null || !context.mounted) return;
+    await _saveLocation(context, ref, result);
+  }
+
+  Future<void> _removeLocation(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.weatherClearLocationTooltip),
+        content: Text(l10n.weatherRemoveLocationConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+    await _saveLocation(context, ref, null);
   }
 }
 

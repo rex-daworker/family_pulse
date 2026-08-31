@@ -815,4 +815,96 @@ class AppLocalizationsEn extends AppLocalizations {
   String reminderNotificationBody(String time) {
     return 'Starts at $time';
   }
+
+  @override
+  String get weatherHeader => 'Family location';
+
+  @override
+  String get weatherLocationSubtitle => 'Used to show weather on your calendar';
+
+  @override
+  String get weatherNotSetLabel => 'No location set';
+
+  @override
+  String get weatherSetLocationButton => 'Set location';
+
+  @override
+  String get weatherChangeLocationTooltip => 'Change location';
+
+  @override
+  String get weatherClearLocationTooltip => 'Remove location';
+
+  @override
+  String get weatherRemoveLocationConfirm =>
+      'Remove the family\'s weather location? You can set a new one anytime.';
+
+  @override
+  String get weatherSearchDialogTitle => 'Family location';
+
+  @override
+  String get weatherSearchHint =>
+      'Used to show a 7-day forecast on your calendar so you can plan around the weather.';
+
+  @override
+  String get weatherSearchFieldLabel => 'City or town';
+
+  @override
+  String get weatherSearchButton => 'Search';
+
+  @override
+  String get weatherSearchNoResults => 'No matching places found';
+
+  @override
+  String get weatherSearchFailedError =>
+      'Couldn\'t search locations — check your connection and try again';
+
+  @override
+  String get weatherLocationSaved => 'Location saved';
+
+  @override
+  String get weatherLocationRemoved => 'Location removed';
+
+  @override
+  String couldNotUpdateLocationError(String error) {
+    return 'Could not update location: $error';
+  }
+
+  @override
+  String get weatherClear => 'Clear';
+
+  @override
+  String get weatherPartlyCloudy => 'Partly cloudy';
+
+  @override
+  String get weatherOvercast => 'Overcast';
+
+  @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String get weatherDrizzle => 'Drizzle';
+
+  @override
+  String get weatherRain => 'Rain';
+
+  @override
+  String get weatherSnow => 'Snow';
+
+  @override
+  String get weatherThunderstorm => 'Thunderstorm';
+
+  @override
+  String weatherDaySummary(
+    String description,
+    int tempMax,
+    int tempMin,
+    int rainChance,
+  ) {
+    return '$description · $tempMax°/$tempMin°C · $rainChance% rain';
+  }
+
+  @override
+  String rainRiskTooltip(int percent) {
+    return '$percent% chance of rain';
+  }
 }

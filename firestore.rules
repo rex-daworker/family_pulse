@@ -31,8 +31,16 @@ service cloud.firestore {
       // there's no directory or listing endpoint that leaks IDs. Only
       // existing members may update it.
       allow read: if request.auth != null;
+
+      // Any member can update the family doc, EXCEPT the `weather_location`
+      // field — that one is parent-only, since it's a shared setting every
+      // member's calendar reads from (see WeatherService/FamilyService).
+      // The condition reads as: you're a member, AND (you're not touching
+      // weather_location, OR you're a parent).
       allow update: if request.auth != null &&
-        exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid));
+        exists(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['weather_location']) ||
+         get(/databases/$(database)/documents/families/$(familyId)/users/$(request.auth.uid)).data.role == 'parent');
 
       match /users/{userId} {
         // No exists() check on the parent family here — it breaks family

@@ -1,6 +1,6 @@
 # FamilyPulse 📅
 
-A Flutter + Firebase family calendar app that finds shared free time across school, hobbies, and work schedules — with family groups, member roles, recurring events, reminders, and profile photos.
+A Flutter + Firebase family calendar app that finds shared free time across school, hobbies, and work schedules — with family groups, member roles, recurring events, reminders, profile photos, and a weather forecast that flags outdoor plans at risk of rain.
 
 **Status: feature-complete.** Every item on the roadmap is built and merged into `main`.
 
@@ -69,6 +69,9 @@ Two things worth knowing if you're setting this up fresh:
 - After enabling Storage, deploy the security rules once:
   `firebase deploy --only storage`.
 
+The weather forecast needs no setup at all — Open-Meteo is keyless, so
+there's no account, billing, or `.env` entry to configure for it.
+
 ---
 
 ## Key Features
@@ -93,6 +96,11 @@ Two things worth knowing if you're setting this up fresh:
   age, and gender, editable by each member for themselves.
 - **Analytics** — busiest day of the week, who's added the most events,
   breakdown by category.
+- **Weather forecast** — a parent sets the family's home location once in
+  Settings; the calendar then shows a 7-day forecast icon on each day tile,
+  a full day summary (temps + rain chance) under the selected day, and a
+  rain-risk badge on outdoor-leaning events (hobby/other) when their day
+  is forecast for rain or snow. Powered by Open-Meteo — free, no API key.
 - **Settings** — light/dark theme, and full localization in English,
   Finnish, and Swedish.
 - **CI/CD** — every push runs `flutter analyze`, `dart format`, and
@@ -124,10 +132,11 @@ family_pulse/
 │   │   └── error_messages.dart       # localized error copy
 │   │
 │   ├── models/
-│   │   ├── family_model.dart
+│   │   ├── family_model.dart         # includes the family's weather_location
 │   │   ├── family_group_model.dart
 │   │   ├── family_member_model.dart  # includes photo_url / age / gender
-│   │   └── event_model.dart          # includes recurrence / reminder fields
+│   │   ├── event_model.dart          # includes recurrence / reminder fields
+│   │   └── weather_model.dart        # WMO weather-code → icon/description
 │   │
 │   ├── services/                     # Firebase backend logic
 │   │   ├── auth_service.dart         # sign up, sign in, sign out
@@ -135,13 +144,15 @@ family_pulse/
 │   │   │                             # free-time finder algorithm
 │   │   ├── family_service.dart       # family/group creation and management
 │   │   ├── storage_service.dart      # profile photo upload
-│   │   └── notification_service.dart # local reminder scheduling
+│   │   ├── notification_service.dart # local reminder scheduling
+│   │   └── weather_service.dart      # Open-Meteo geocoding + forecast (no API key)
 │   │
 │   ├── providers/                    # Riverpod state management
 │   │   ├── auth_provider.dart
 │   │   ├── event_provider.dart
 │   │   ├── group_provider.dart
-│   │   └── settings_provider.dart
+│   │   ├── settings_provider.dart
+│   │   └── weather_provider.dart
 │   │
 │   ├── screens/                      # UI screens
 │   │   ├── auth/                     # welcome, login, register
@@ -149,12 +160,13 @@ family_pulse/
 │   │   ├── home/                     # Pulse (landing) + free-time finder
 │   │   ├── analytics/
 │   │   ├── profile/
-│   │   └── settings/
+│   │   └── settings/                 # includes the family location picker
 │   │
 │   ├── widgets/                      # Reusable UI components
 │   │   ├── app_drawer.dart
 │   │   ├── name_label_dialog.dart
-│   │   └── profile_edit_dialog.dart
+│   │   ├── profile_edit_dialog.dart
+│   │   └── weather_location_dialog.dart
 │   │
 │   └── l10n/                         # English / Finnish / Swedish (l10n.yaml + *.arb)
 │
@@ -185,6 +197,7 @@ family_pulse/
 | Cloud Firestore             | Database — families, users, events, groups  |
 | Firebase Storage            | Profile photo uploads                       |
 | flutter_local_notifications | On-device event reminders                   |
+| Open-Meteo (via `http`)     | Weather forecast + geocoding — free, no key |
 | Flutter Riverpod            | State management                            |
 | go_router                   | Navigation between screens                  |
 | flutter_localizations       | English / Finnish / Swedish                 |
@@ -199,6 +212,7 @@ families/
 └── {family_id}/
     ├── name: String
     ├── created_at: Timestamp
+    ├── weather_location: { name, latitude, longitude }?   // parent-only write, see firestore.rules
     ├── users/
     │   └── {user_id}/
     │       ├── name: String

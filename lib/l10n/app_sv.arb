@@ -282,5 +282,47 @@
   "reminderNotificationBody": "Börjar {time}",
   "@reminderNotificationBody": {
     "placeholders": { "time": { "type": "String" } }
+  },
+
+  "weatherHeader": "Familjens plats",
+  "weatherLocationSubtitle": "Används för att visa väder i din kalender",
+  "weatherNotSetLabel": "Ingen plats vald",
+  "weatherSetLocationButton": "Ange plats",
+  "weatherChangeLocationTooltip": "Byt plats",
+  "weatherClearLocationTooltip": "Ta bort plats",
+  "weatherRemoveLocationConfirm": "Ta bort familjens väderplats? Du kan ange en ny när som helst.",
+  "weatherSearchDialogTitle": "Familjens plats",
+  "weatherSearchHint": "Visar en 7-dagarsprognos i din kalender så att ni kan planera efter vädret.",
+  "weatherSearchFieldLabel": "Stad eller ort",
+  "weatherSearchButton": "Sök",
+  "weatherSearchNoResults": "Inga matchande platser hittades",
+  "weatherSearchFailedError": "Kunde inte söka platser — kontrollera din anslutning och försök igen",
+  "weatherLocationSaved": "Plats sparad",
+  "weatherLocationRemoved": "Plats borttagen",
+  "couldNotUpdateLocationError": "Kunde inte uppdatera platsen: {error}",
+  "@couldNotUpdateLocationError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "weatherClear": "Klart",
+  "weatherPartlyCloudy": "Delvis molnigt",
+  "weatherOvercast": "Mulet",
+  "weatherFog": "Dimma",
+  "weatherDrizzle": "Duggregn",
+  "weatherRain": "Regn",
+  "weatherSnow": "Snö",
+  "weatherThunderstorm": "Åska",
+  "weatherDaySummary": "{description} · {tempMax}°/{tempMin}°C · {rainChance}% regn",
+  "@weatherDaySummary": {
+    "placeholders": {
+      "description": { "type": "String" },
+      "tempMax": { "type": "int" },
+      "tempMin": { "type": "int" },
+      "rainChance": { "type": "int" }
+    }
+  },
+  "rainRiskTooltip": "{percent}% chans för regn",
+  "@rainRiskTooltip": {
+    "placeholders": { "percent": { "type": "int" } }
   }
 }

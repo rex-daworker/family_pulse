@@ -16,9 +16,11 @@ import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'models/event_model.dart';
+import 'models/weather_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/event_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/weather_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/analytics/analytics_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -645,6 +647,17 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     final dayEvents = _eventsForSelectedDay();
     final l10n = AppLocalizations.of(context);
 
+    // Weather is layered on top of the calendar rather than gating it: no
+    // location set, or a network hiccup, both just mean this map is empty —
+    // see weatherForecastProvider's doc comment for why errors are
+    // swallowed rather than surfaced here.
+    final forecasts =
+        ref.watch(weatherForecastProvider).valueOrNull ?? const [];
+    final forecastByDay = <DateTime, DailyForecast>{
+      for (final forecast in forecasts) eventKeyFor(forecast.date): forecast,
+    };
+    final selectedDayForecast = forecastByDay[eventKeyFor(_selectedDate)];
+
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
@@ -784,6 +797,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                 final showEmpty = _showEmptyDays && isCurrentMonth && !hasEvent;
 
+                final dayForecast = forecastByDay[eventKeyFor(day)];
+
                 return GestureDetector(
                   onTap: () {
                     _selectDay(day);
@@ -816,16 +831,32 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
 
                         children: [
-                          Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: isCurrentMonth
-                                  ? Colors.black
-                                  : Colors.grey,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  color: isCurrentMonth
+                                      ? Colors.black
+                                      : Colors.grey,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              const Spacer(),
+                              // A glance-able hint, not a full forecast — see
+                              // the "Events for X" panel below for the full
+                              // day summary (temps + rain chance).
+                              if (dayForecast != null)
+                                Icon(
+                                  weatherIconFor(dayForecast.weatherCode).icon,
+                                  size: 12,
+                                  color: weatherIconFor(
+                                    dayForecast.weatherCode,
+                                  ).color,
+                                ),
+                            ],
                           ),
 
                           const Spacer(),
@@ -904,11 +935,53 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
 
                   const SizedBox(height: 8),
 
+                  if (selectedDayForecast != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            weatherIconFor(
+                              selectedDayForecast.weatherCode,
+                            ).icon,
+                            size: 20,
+                            color: weatherIconFor(
+                              selectedDayForecast.weatherCode,
+                            ).color,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.weatherDaySummary(
+                                weatherDescription(
+                                  l10n,
+                                  selectedDayForecast.weatherCode,
+                                ),
+                                selectedDayForecast.tempMaxC.round(),
+                                selectedDayForecast.tempMinC.round(),
+                                selectedDayForecast.precipitationProbability,
+                              ),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   if (dayEvents.isEmpty)
                     Text(l10n.noEventsYet)
                   else
                     ...dayEvents.map((event) {
                       final meta = categoryMeta(context, event.category);
+                      final eventForecast =
+                          forecastByDay[eventKeyFor(event.date)];
+                      // Only flag it for the categories where "it might
+                      // rain" actually changes the plan — school/work
+                      // happen regardless of weather.
+                      final isOutdoorLeaning =
+                          event.category == 'hobby' ||
+                          event.category == 'other';
+
                       return Card(
                         child: ListTile(
                           title: Text(event.title),
@@ -922,6 +995,19 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (eventForecast != null &&
+                                  eventForecast.isOutdoorRisk &&
+                                  isOutdoorLeaning)
+                                Tooltip(
+                                  message: l10n.rainRiskTooltip(
+                                    eventForecast.precipitationProbability,
+                                  ),
+                                  child: const Icon(
+                                    Icons.umbrella,
+                                    size: 18,
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
                               if (event.seriesId != null)
                                 Icon(
                                   Icons.repeat,

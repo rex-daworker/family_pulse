@@ -1539,6 +1539,167 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Starts at {time}'**
   String reminderNotificationBody(String time);
+
+  /// No description provided for @weatherHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Family location'**
+  String get weatherHeader;
+
+  /// No description provided for @weatherLocationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Used to show weather on your calendar'**
+  String get weatherLocationSubtitle;
+
+  /// No description provided for @weatherNotSetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No location set'**
+  String get weatherNotSetLabel;
+
+  /// No description provided for @weatherSetLocationButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Set location'**
+  String get weatherSetLocationButton;
+
+  /// No description provided for @weatherChangeLocationTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Change location'**
+  String get weatherChangeLocationTooltip;
+
+  /// No description provided for @weatherClearLocationTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove location'**
+  String get weatherClearLocationTooltip;
+
+  /// No description provided for @weatherRemoveLocationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the family\'s weather location? You can set a new one anytime.'**
+  String get weatherRemoveLocationConfirm;
+
+  /// No description provided for @weatherSearchDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family location'**
+  String get weatherSearchDialogTitle;
+
+  /// No description provided for @weatherSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Used to show a 7-day forecast on your calendar so you can plan around the weather.'**
+  String get weatherSearchHint;
+
+  /// No description provided for @weatherSearchFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City or town'**
+  String get weatherSearchFieldLabel;
+
+  /// No description provided for @weatherSearchButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get weatherSearchButton;
+
+  /// No description provided for @weatherSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching places found'**
+  String get weatherSearchNoResults;
+
+  /// No description provided for @weatherSearchFailedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search locations — check your connection and try again'**
+  String get weatherSearchFailedError;
+
+  /// No description provided for @weatherLocationSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Location saved'**
+  String get weatherLocationSaved;
+
+  /// No description provided for @weatherLocationRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Location removed'**
+  String get weatherLocationRemoved;
+
+  /// No description provided for @couldNotUpdateLocationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update location: {error}'**
+  String couldNotUpdateLocationError(String error);
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get weatherClear;
+
+  /// No description provided for @weatherPartlyCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly cloudy'**
+  String get weatherPartlyCloudy;
+
+  /// No description provided for @weatherOvercast.
+  ///
+  /// In en, this message translates to:
+  /// **'Overcast'**
+  String get weatherOvercast;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In en, this message translates to:
+  /// **'Fog'**
+  String get weatherFog;
+
+  /// No description provided for @weatherDrizzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drizzle'**
+  String get weatherDrizzle;
+
+  /// No description provided for @weatherRain.
+  ///
+  /// In en, this message translates to:
+  /// **'Rain'**
+  String get weatherRain;
+
+  /// No description provided for @weatherSnow.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow'**
+  String get weatherSnow;
+
+  /// No description provided for @weatherThunderstorm.
+  ///
+  /// In en, this message translates to:
+  /// **'Thunderstorm'**
+  String get weatherThunderstorm;
+
+  /// No description provided for @weatherDaySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{description} · {tempMax}°/{tempMin}°C · {rainChance}% rain'**
+  String weatherDaySummary(
+    String description,
+    int tempMax,
+    int tempMin,
+    int rainChance,
+  );
+
+  /// No description provided for @rainRiskTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% chance of rain'**
+  String rainRiskTooltip(int percent);
 }
 
 class _AppLocalizationsDelegate

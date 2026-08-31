@@ -819,4 +819,96 @@ class AppLocalizationsFi extends AppLocalizations {
   String reminderNotificationBody(String time) {
     return 'Alkaa klo $time';
   }
+
+  @override
+  String get weatherHeader => 'Perheen sijainti';
+
+  @override
+  String get weatherLocationSubtitle => 'Näytetään sään kalenterissasi';
+
+  @override
+  String get weatherNotSetLabel => 'Sijaintia ei ole asetettu';
+
+  @override
+  String get weatherSetLocationButton => 'Aseta sijainti';
+
+  @override
+  String get weatherChangeLocationTooltip => 'Vaihda sijainti';
+
+  @override
+  String get weatherClearLocationTooltip => 'Poista sijainti';
+
+  @override
+  String get weatherRemoveLocationConfirm =>
+      'Poistetaanko perheen sään sijainti? Voit asettaa uuden milloin tahansa.';
+
+  @override
+  String get weatherSearchDialogTitle => 'Perheen sijainti';
+
+  @override
+  String get weatherSearchHint =>
+      'Näytetään 7 päivän sääennuste kalenterissasi, jotta voitte suunnitella sään mukaan.';
+
+  @override
+  String get weatherSearchFieldLabel => 'Kaupunki tai kunta';
+
+  @override
+  String get weatherSearchButton => 'Hae';
+
+  @override
+  String get weatherSearchNoResults => 'Vastaavia paikkoja ei löytynyt';
+
+  @override
+  String get weatherSearchFailedError =>
+      'Hakua ei voitu suorittaa — tarkista verkkoyhteytesi ja yritä uudelleen';
+
+  @override
+  String get weatherLocationSaved => 'Sijainti tallennettu';
+
+  @override
+  String get weatherLocationRemoved => 'Sijainti poistettu';
+
+  @override
+  String couldNotUpdateLocationError(String error) {
+    return 'Sijaintia ei voitu päivittää: $error';
+  }
+
+  @override
+  String get weatherClear => 'Selkeää';
+
+  @override
+  String get weatherPartlyCloudy => 'Puolipilvistä';
+
+  @override
+  String get weatherOvercast => 'Pilvistä';
+
+  @override
+  String get weatherFog => 'Sumua';
+
+  @override
+  String get weatherDrizzle => 'Tihkusadetta';
+
+  @override
+  String get weatherRain => 'Sadetta';
+
+  @override
+  String get weatherSnow => 'Lunta';
+
+  @override
+  String get weatherThunderstorm => 'Ukkosta';
+
+  @override
+  String weatherDaySummary(
+    String description,
+    int tempMax,
+    int tempMin,
+    int rainChance,
+  ) {
+    return '$description · $tempMax°/$tempMin°C · $rainChance% sadetta';
+  }
+
+  @override
+  String rainRiskTooltip(int percent) {
+    return '$percent% sadetodennäköisyys';
+  }
 }
