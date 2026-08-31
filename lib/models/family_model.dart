@@ -52,7 +52,9 @@ class FamilyModel {
       // so we convert it here. Falls back to "now" if missing.
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       weatherLocation: rawLocation is Map
-          ? FamilyWeatherLocation.fromMap(Map<String, dynamic>.from(rawLocation))
+          ? FamilyWeatherLocation.fromMap(
+              Map<String, dynamic>.from(rawLocation),
+            )
           : null,
     );
   }

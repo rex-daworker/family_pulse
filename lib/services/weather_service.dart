@@ -73,18 +73,16 @@ class WeatherService {
     final results = body['results'] as List<dynamic>?;
     if (results == null) return const [];
 
-    return results
-        .map((r) {
-          final map = r as Map<String, dynamic>;
-          return WeatherLocationResult(
-            name: map['name'] as String? ?? '',
-            admin1: map['admin1'] as String? ?? '',
-            country: map['country'] as String? ?? '',
-            latitude: (map['latitude'] as num).toDouble(),
-            longitude: (map['longitude'] as num).toDouble(),
-          );
-        })
-        .toList();
+    return results.map((r) {
+      final map = r as Map<String, dynamic>;
+      return WeatherLocationResult(
+        name: map['name'] as String? ?? '',
+        admin1: map['admin1'] as String? ?? '',
+        country: map['country'] as String? ?? '',
+        latitude: (map['latitude'] as num).toDouble(),
+        longitude: (map['longitude'] as num).toDouble(),
+      );
+    }).toList();
   }
 
   /// 7-day forecast for a fixed point. `forecast_days: 7` keeps the payload

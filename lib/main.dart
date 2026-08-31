@@ -651,7 +651,8 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
     // location set, or a network hiccup, both just mean this map is empty —
     // see weatherForecastProvider's doc comment for why errors are
     // swallowed rather than surfaced here.
-    final forecasts = ref.watch(weatherForecastProvider).valueOrNull ?? const [];
+    final forecasts =
+        ref.watch(weatherForecastProvider).valueOrNull ?? const [];
     final forecastByDay = <DateTime, DailyForecast>{
       for (final forecast in forecasts) eventKeyFor(forecast.date): forecast,
     };
@@ -940,8 +941,9 @@ class _FamilyCalendarPageState extends ConsumerState<FamilyCalendarPage> {
                       child: Row(
                         children: [
                           Icon(
-                            weatherIconFor(selectedDayForecast.weatherCode)
-                                .icon,
+                            weatherIconFor(
+                              selectedDayForecast.weatherCode,
+                            ).icon,
                             size: 20,
                             color: weatherIconFor(
                               selectedDayForecast.weatherCode,
