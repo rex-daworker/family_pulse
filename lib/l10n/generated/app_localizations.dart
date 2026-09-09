@@ -592,6 +592,18 @@ abstract class AppLocalizations {
   /// **'Free Time'**
   String get freeTimeTitle;
 
+  /// No description provided for @familyAvailabilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability — {date}'**
+  String familyAvailabilityTitle(String date);
+
+  /// No description provided for @freeAllDayStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Free all day'**
+  String get freeAllDayStatus;
+
   /// No description provided for @previousDayTooltip.
   ///
   /// In en, this message translates to:

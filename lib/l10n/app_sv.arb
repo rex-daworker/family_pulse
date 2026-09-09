@@ -92,6 +92,8 @@
   "couldNotSaveGroupError": "Kunde inte spara gruppen — {error}",
 
   "freeTimeTitle": "Ledig tid",
+  "familyAvailabilityTitle": "Tillgänglighet — {date}",
+  "freeAllDayStatus": "Ledig hela dagen",
   "previousDayTooltip": "Föregående dag",
   "nextDayTooltip": "Nästa dag",
   "minDuration30": "30 min+",

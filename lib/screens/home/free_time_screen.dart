@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../../models/family_member_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/event_provider.dart';
 
@@ -117,11 +118,22 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
                       // confusing empty state.
                       return Center(child: Text(l10n.couldNotFindMembers));
                     }
-                    return _FreeSlotsList(
-                      familyId: familyId,
-                      memberIds: memberIds,
-                      date: _selectedDate,
-                      minDurationMinutes: _minDurationMinutes,
+                    return Column(
+                      children: [
+                        _FamilyAvailabilityCard(
+                          familyId: familyId,
+                          members: members,
+                          date: _selectedDate,
+                        ),
+                        Expanded(
+                          child: _FreeSlotsList(
+                            familyId: familyId,
+                            memberIds: memberIds,
+                            date: _selectedDate,
+                            minDurationMinutes: _minDurationMinutes,
+                          ),
+                        ),
+                      ],
                     );
                   },
                   loading: () =>
@@ -143,18 +155,18 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
       ),
     );
   }
+}
 
-  String _dateLabel(BuildContext context, DateTime date) {
-    final today = DateTime.now();
-    final isToday =
-        date.year == today.year &&
-        date.month == today.month &&
-        date.day == today.day;
-    if (isToday) return AppLocalizations.of(context).todayLabel;
+String _dateLabel(BuildContext context, DateTime date) {
+  final today = DateTime.now();
+  final isToday =
+      date.year == today.year &&
+      date.month == today.month &&
+      date.day == today.day;
+  if (isToday) return AppLocalizations.of(context).todayLabel;
 
-    final locale = Localizations.localeOf(context).toString();
-    return DateFormat.MMMd(locale).format(date);
-  }
+  final locale = Localizations.localeOf(context).toString();
+  return DateFormat.MMMd(locale).format(date);
 }
 
 // Owns the async load of free slots and re-runs it whenever the day,
@@ -345,6 +357,210 @@ class _FreeSlotsListState extends ConsumerState<_FreeSlotsList> {
   String _timeLabel(BuildContext context, DateTime date) {
     final locale = Localizations.localeOf(context).toString();
     return DateFormat.jm(locale).format(date);
+  }
+}
+
+// Shows each family member's own busy/free status for the selected day —
+// the per-member detail findFreeSlots() computes internally and then
+// throws away once it's collapsed into "when is everyone free". This is
+// the piece that was missing on top of the combined result: not just
+// whether there's a free window, but who specifically is free or busy
+// when there isn't one.
+class _FamilyAvailabilityCard extends ConsumerStatefulWidget {
+  const _FamilyAvailabilityCard({
+    required this.familyId,
+    required this.members,
+    required this.date,
+  });
+
+  final String familyId;
+  final List<FamilyMember> members;
+  final DateTime date;
+
+  @override
+  ConsumerState<_FamilyAvailabilityCard> createState() =>
+      _FamilyAvailabilityCardState();
+}
+
+class _FamilyAvailabilityCardState
+    extends ConsumerState<_FamilyAvailabilityCard> {
+  late Future<Map<String, List<Map<String, DateTime>>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FamilyAvailabilityCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.members.map((m) => m.userId).toList();
+    final newIds = widget.members.map((m) => m.userId).toList();
+    if (oldWidget.date != widget.date ||
+        oldWidget.familyId != widget.familyId ||
+        !listEquals(oldIds, newIds)) {
+      setState(() {
+        _future = _load();
+      });
+    }
+  }
+
+  // Same 7:00–21:00 "family time" window as _FreeSlotsList._load() below —
+  // keep these in sync if that window ever changes, so a member's status
+  // shown here still lines up with what the free-slot search actually
+  // searched.
+  Future<Map<String, List<Map<String, DateTime>>>> _load() {
+    final dayStart = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      7,
+    );
+    final dayEnd = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      21,
+    );
+    return ref
+        .read(eventServiceProvider)
+        .getMemberAvailability(
+          familyId: widget.familyId,
+          dayStart: dayStart,
+          dayEnd: dayEnd,
+          memberIds: widget.members.map((m) => m.userId).toList(),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.familyAvailabilityTitle(_dateLabel(context, widget.date)),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<Map<String, List<Map<String, DateTime>>>>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Text(
+                    l10n.couldNotLoadFreeTimeError('${snapshot.error}'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  );
+                }
+
+                final busyTimes = snapshot.data ?? {};
+                return Column(
+                  children: widget.members
+                      .map(
+                        (member) => _MemberAvailabilityRow(
+                          member: member,
+                          busyBlocks: busyTimes[member.userId] ?? const [],
+                        ),
+                      )
+                      .toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MemberAvailabilityRow extends StatelessWidget {
+  const _MemberAvailabilityRow({
+    required this.member,
+    required this.busyBlocks,
+  });
+
+  final FamilyMember member;
+  final List<Map<String, DateTime>> busyBlocks;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final isFree = busyBlocks.isEmpty;
+    final statusColor = isFree ? Colors.green.shade700 : Colors.orange.shade800;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Icon(Icons.circle, size: 10, color: statusColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.name.isNotEmpty ? member.name : member.email,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                if (isFree)
+                  Text(
+                    l10n.freeAllDayStatus,
+                    style: TextStyle(color: statusColor, fontSize: 13),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: busyBlocks
+                        .map(
+                          (block) => Chip(
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: Colors.orange.shade50,
+                            label: Text(
+                              '${DateFormat.jm(locale).format(block['start']!)} – '
+                              '${DateFormat.jm(locale).format(block['end']!)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -109,6 +109,11 @@
   },
 
   "freeTimeTitle": "Free Time",
+  "familyAvailabilityTitle": "Availability — {date}",
+  "@familyAvailabilityTitle": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "freeAllDayStatus": "Free all day",
   "previousDayTooltip": "Previous day",
   "nextDayTooltip": "Next day",
   "minDuration30": "30 min+",
