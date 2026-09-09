@@ -268,6 +268,14 @@ class AppLocalizationsSv extends AppLocalizations {
   String get freeTimeTitle => 'Ledig tid';
 
   @override
+  String familyAvailabilityTitle(String date) {
+    return 'Tillgänglighet — $date';
+  }
+
+  @override
+  String get freeAllDayStatus => 'Ledig hela dagen';
+
+  @override
   String get previousDayTooltip => 'Föregående dag';
 
   @override

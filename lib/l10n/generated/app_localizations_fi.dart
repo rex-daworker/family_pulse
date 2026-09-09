@@ -270,6 +270,14 @@ class AppLocalizationsFi extends AppLocalizations {
   String get freeTimeTitle => 'Vapaa-aika';
 
   @override
+  String familyAvailabilityTitle(String date) {
+    return 'Saatavuus — $date';
+  }
+
+  @override
+  String get freeAllDayStatus => 'Vapaana koko päivän';
+
+  @override
   String get previousDayTooltip => 'Edellinen päivä';
 
   @override

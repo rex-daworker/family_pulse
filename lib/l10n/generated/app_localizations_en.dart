@@ -267,6 +267,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get freeTimeTitle => 'Free Time';
 
   @override
+  String familyAvailabilityTitle(String date) {
+    return 'Availability — $date';
+  }
+
+  @override
+  String get freeAllDayStatus => 'Free all day';
+
+  @override
   String get previousDayTooltip => 'Previous day';
 
   @override

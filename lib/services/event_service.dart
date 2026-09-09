@@ -249,6 +249,59 @@ class EventService {
     return freeSlots;
   }
 
+  // ─── PER-MEMBER AVAILABILITY ────────────────────────────────
+  // Companion to findFreeSlots(): that method computes each member's busy
+  // blocks for the day and then collapses them down to just "when is the
+  // whole family free", discarding who was actually busy. This keeps that
+  // per-member detail instead, so the UI can answer the question the
+  // aggregate result can't — not just "is there a free window", but
+  // "who specifically is free or busy right now". Deliberately a second,
+  // separate Firestore fetch rather than merged into findFreeSlots() —
+  // keeps that method's existing return shape untouched for its current
+  // callers, at the cost of one extra day-range query when a screen wants
+  // both.
+  Future<Map<String, List<Map<String, DateTime>>>> getMemberAvailability({
+    required String familyId,
+    required DateTime dayStart,
+    required DateTime dayEnd,
+    required List<String> memberIds,
+  }) async {
+    final snapshot = await _firestore
+        .collection('families')
+        .doc(familyId)
+        .collection('events')
+        .where(
+          'start_time',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart),
+        )
+        .where('start_time', isLessThanOrEqualTo: Timestamp.fromDate(dayEnd))
+        .get();
+
+    final Map<String, List<Map<String, DateTime>>> busyTimes = {
+      for (final id in memberIds) id: <Map<String, DateTime>>[],
+    };
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final userId = data['user_id'] as String;
+
+      if (busyTimes.containsKey(userId)) {
+        busyTimes[userId]!.add({
+          'start': (data['start_time'] as Timestamp).toDate(),
+          'end': (data['end_time'] as Timestamp).toDate(),
+        });
+      }
+    }
+
+    // Sort each member's own blocks chronologically so the UI can render
+    // them in order without having to re-sort itself.
+    for (final blocks in busyTimes.values) {
+      blocks.sort((a, b) => a['start']!.compareTo(b['start']!));
+    }
+
+    return busyTimes;
+  }
+
   // ─── UPDATE EVENT ──────────────────────────────────────────
   Future<void> updateEvent({
     required String familyId,

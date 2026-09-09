@@ -92,6 +92,8 @@
   "couldNotSaveGroupError": "Ryhmää ei voitu tallentaa — {error}",
 
   "freeTimeTitle": "Vapaa-aika",
+  "familyAvailabilityTitle": "Saatavuus — {date}",
+  "freeAllDayStatus": "Vapaana koko päivän",
   "previousDayTooltip": "Edellinen päivä",
   "nextDayTooltip": "Seuraava päivä",
   "minDuration30": "30 min+",
