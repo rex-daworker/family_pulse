@@ -47,3 +47,10 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
 google-services.json
+
+# Firebase Hosting / Emulators
+.firebase/
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
