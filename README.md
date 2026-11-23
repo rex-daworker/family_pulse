@@ -24,6 +24,23 @@ A Flutter + Firebase family calendar app that finds shared free time across scho
 | ![Profile](docs/screenshots/profile_screen.png) | ![Family location set](docs/screenshots/weather_location.png) | ![Weather on the calendar](docs/screenshots/weather_calendar.png) |
 | Profile — age, gender | Family location — set once by a parent | Weather forecast on the calendar |
 
+### Live web build
+
+The app also runs in the browser with no install step, deployed to
+Firebase Hosting at **https://family-pulse-sznzoj.web.app**.
+
+| | | |
+|---|---|---|
+| ![Welcome](docs/screenshots/web/web_mobile_welcome.png) | ![Create a family](docs/screenshots/web/web_mobile_create_family.png) | ![Family created](docs/screenshots/web/web_mobile_family_created.png) |
+| Signed in, no family yet | Create-a-family form at phone width | Invite code returned and copyable |
+
+| | |
+|---|---|
+| ![Home](docs/screenshots/web/web_mobile_home.png) | ![Navigation](docs/screenshots/web/web_mobile_drawer.png) |
+| Pulse home on iOS Safari | Navigation drawer |
+
+See [docs/screenshots/web/](docs/screenshots/web/) for capture details.
+
 ---
 
 ## Getting Started
