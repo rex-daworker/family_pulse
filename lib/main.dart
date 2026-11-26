@@ -32,6 +32,7 @@ import 'screens/family/family_screen.dart';
 import 'screens/family/groups_screen.dart';
 import 'screens/family/join_family_screen.dart';
 import 'screens/home/free_time_screen.dart';
+import 'screens/home/range_free_time_screen.dart';
 import 'screens/home/pulse_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -191,6 +192,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/free-time',
         builder: (context, state) => const FreeTimeScreen(),
+      ),
+      GoRoute(
+        path: '/free-time-range',
+        builder: (context, state) => const RangeFreeTimeScreen(),
       ),
       GoRoute(
         path: '/family',

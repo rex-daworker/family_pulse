@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/generated/app_localizations.dart';
@@ -57,9 +58,37 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
     final membersAsync = ref.watch(familyMembersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.freeTimeTitle)),
+      appBar: AppBar(
+        title: Text(l10n.freeTimeTitle),
+        actions: [
+          IconButton(
+            onPressed: () => context.push('/free-time-range'),
+            icon: const Icon(Icons.date_range),
+            tooltip: 'Search a date range',
+          ),
+        ],
+      ),
       body: Column(
         children: [
+          // Entry point to the range search. This screen answers "is the
+          // family free on this day"; the range search answers "when in the
+          // next fortnight can we all get three hours", which runs in an
+          // Azure Function rather than on the device.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: const Text('Find time across several days'),
+                subtitle: const Text(
+                  'Search the next two weeks for a window that suits everyone',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/free-time-range'),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
             child: Row(
