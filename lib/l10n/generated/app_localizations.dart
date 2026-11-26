@@ -1712,6 +1712,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{percent}% chance of rain'**
   String rainRiskTooltip(int percent);
+
+  /// No description provided for @rangeFreeTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find time together'**
+  String get rangeFreeTimeTitle;
+
+  /// No description provided for @rangeLookAhead.
+  ///
+  /// In en, this message translates to:
+  /// **'Look ahead'**
+  String get rangeLookAhead;
+
+  /// No description provided for @rangeHorizonWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'1 week'**
+  String get rangeHorizonWeek;
+
+  /// No description provided for @rangeHorizonTwoWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'2 weeks'**
+  String get rangeHorizonTwoWeeks;
+
+  /// No description provided for @rangeHorizonMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'1 month'**
+  String get rangeHorizonMonth;
+
+  /// No description provided for @rangeMinimumLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'We need at least'**
+  String get rangeMinimumLabel;
+
+  /// No description provided for @rangeDurationOneHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get rangeDurationOneHour;
+
+  /// No description provided for @rangeDurationTwoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'2 hours'**
+  String get rangeDurationTwoHours;
+
+  /// No description provided for @rangeDurationThreeHours.
+  ///
+  /// In en, this message translates to:
+  /// **'3 hours'**
+  String get rangeDurationThreeHours;
+
+  /// No description provided for @rangeDurationFourHours.
+  ///
+  /// In en, this message translates to:
+  /// **'4 hours'**
+  String get rangeDurationFourHours;
+
+  /// No description provided for @rangeSearchButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Find free time'**
+  String get rangeSearchButton;
+
+  /// No description provided for @rangeSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get rangeSearching;
+
+  /// No description provided for @rangeNoFamilyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No family yet'**
+  String get rangeNoFamilyTitle;
+
+  /// No description provided for @rangeNoFamilyDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Join or create a family to search for shared free time.'**
+  String get rangeNoFamilyDetail;
+
+  /// No description provided for @rangeLoadFamilyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your family'**
+  String get rangeLoadFamilyError;
+
+  /// Count of shared free windows returned by the range search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 window found} other{{count} windows found}}'**
+  String rangeWindowsFound(int count);
+
+  /// Shown under the result count; names where the search ran.
+  ///
+  /// In en, this message translates to:
+  /// **'Across {members} members and {events} events, computed in Azure.'**
+  String rangeComputedSummary(int members, int events);
+
+  /// No description provided for @rangeNoWindowsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing that long is free'**
+  String get rangeNoWindowsTitle;
+
+  /// No description provided for @rangeNoWindowsDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'No window that long in the period you chose. Try a shorter block or a longer horizon.'**
+  String get rangeNoWindowsDetail;
+
+  /// No description provided for @rangeErrorNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'You are signed out. Sign in and try again.'**
+  String get rangeErrorNotSignedIn;
+
+  /// No description provided for @rangeErrorUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Sign out and back in.'**
+  String get rangeErrorUnauthorized;
+
+  /// No description provided for @rangeErrorNotMember.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not a member of this family.'**
+  String get rangeErrorNotMember;
+
+  /// No description provided for @rangeErrorFamilyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This family has no members yet.'**
+  String get rangeErrorFamilyEmpty;
+
+  /// No description provided for @rangeErrorUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the free-time service. Check your connection and try again — the first request after a quiet period can be slow.'**
+  String get rangeErrorUnreachable;
+
+  /// No description provided for @rangeErrorBadResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The service returned something unexpected.'**
+  String get rangeErrorBadResponse;
+
+  /// Fallback when the free-time service returns an unrecognised error code.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong ({code}).'**
+  String rangeErrorUnknown(String code);
+
+  /// No description provided for @rangeEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find time across several days'**
+  String get rangeEntryTitle;
+
+  /// No description provided for @rangeEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search the next two weeks for a window that suits everyone'**
+  String get rangeEntrySubtitle;
+
+  /// No description provided for @rangeEntryTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a date range'**
+  String get rangeEntryTooltip;
 }
 
 class _AppLocalizationsDelegate

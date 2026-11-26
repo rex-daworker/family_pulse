@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -151,14 +149,15 @@ class ProfileScreen extends ConsumerWidget {
       if (familyId != null && user != null) {
         String? photoUrl = ownMember?.photoUrl;
 
-        final File? newPhotoFile = result.newPhotoFile;
-        if (newPhotoFile != null) {
+        final newPhotoBytes = result.newPhotoBytes;
+        if (newPhotoBytes != null) {
           photoUrl = await ref
               .read(storageServiceProvider)
               .uploadProfilePhoto(
                 familyId: familyId,
                 userId: user.uid,
-                file: newPhotoFile,
+                bytes: newPhotoBytes,
+                contentType: result.newPhotoContentType ?? 'image/jpeg',
               );
         } else if (result.removePhoto) {
           photoUrl = null;

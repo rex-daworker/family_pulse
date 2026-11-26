@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -22,10 +22,19 @@ class StorageService {
   // overwrites the old file in place, so there's no cleanup step and no
   // orphaned images piling up in Storage every time someone changes their
   // picture.
+  //
+  // Takes bytes rather than a File on purpose. `putFile()` accepts a dart:io
+  // File, which does not exist in a browser — firebase_storage's web
+  // implementation throws `UnimplementedError: putFile() is not implemented`,
+  // so profile photos were silently broken on web while working on Android.
+  // `putData()` is implemented on every platform, so this is one code path
+  // rather than a conditional import, and image_picker already hands back an
+  // XFile whose bytes can be read anywhere.
   Future<String> uploadProfilePhoto({
     required String familyId,
     required String userId,
-    required File file,
+    required Uint8List bytes,
+    String contentType = 'image/jpeg',
   }) async {
     try {
       final ref = _storage
@@ -34,7 +43,7 @@ class StorageService {
           .child(familyId)
           .child('profile_photos')
           .child('$userId.jpg');
-      await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
+      await ref.putData(bytes, SettableMetadata(contentType: contentType));
       return await ref.getDownloadURL();
     } on FirebaseException catch (e) {
       throw StorageError(e.code);

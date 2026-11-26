@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -14,11 +13,16 @@ import '../l10n/generated/app_localizations.dart';
 /// the Profile tab.
 ///
 /// Returns null on cancel. On save, returns the edited name/label/age/gender
-/// plus either a newly-picked photo file to upload, or a flag saying the
-/// existing photo should be cleared — the caller (ProfileScreen) does the
+/// plus either the bytes of a newly-picked photo to upload, or a flag saying
+/// the existing photo should be cleared — the caller (ProfileScreen) does the
 /// actual Storage upload and Firestore write, the same way every other
 /// dialog in this app hands back plain data rather than reaching into
 /// services itself.
+///
+/// Bytes rather than a File because dart:io does not exist in a browser.
+/// image_picker returns an XFile on every platform; reading its bytes here
+/// keeps one code path and lets Storage use putData(), which — unlike
+/// putFile() — is implemented on web.
 class ProfileEditDialog extends StatefulWidget {
   const ProfileEditDialog({
     super.key,
@@ -46,7 +50,8 @@ typedef ProfileEditResult = ({
   String label,
   int? age,
   String? gender,
-  File? newPhotoFile,
+  Uint8List? newPhotoBytes,
+  String? newPhotoContentType,
   bool removePhoto,
 });
 
@@ -58,7 +63,8 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
   String? _ageError;
   String? _gender;
 
-  File? _newPhotoFile;
+  Uint8List? _newPhotoBytes;
+  String? _newPhotoContentType;
   bool _removePhoto = false;
 
   @override
@@ -93,9 +99,15 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      if (picked == null || !mounted) return;
+      if (picked == null) return;
+      // Read the bytes before touching setState — readAsBytes() is async on
+      // every platform, and on web it is the only way to get at the image
+      // at all, since picked.path is a blob URL rather than a file path.
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _newPhotoFile = File(picked.path);
+        _newPhotoBytes = bytes;
+        _newPhotoContentType = picked.mimeType ?? 'image/jpeg';
         _removePhoto = false;
       });
     } catch (e) {
@@ -109,21 +121,25 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
   void _showPhotoSourceSheet() {
     final l10n = AppLocalizations.of(context);
     final canRemove =
-        _newPhotoFile != null || (_hasExistingPhoto && !_removePhoto);
+        _newPhotoBytes != null || (_hasExistingPhoto && !_removePhoto);
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: Text(l10n.takePhotoOption),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _pickPhoto(ImageSource.camera);
-              },
-            ),
+            // The camera source is hidden on web: most desktop browsers
+            // fall back to the file picker anyway, so the option promises
+            // something it does not deliver.
+            if (!kIsWeb)
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: Text(l10n.takePhotoOption),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickPhoto(ImageSource.camera);
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: Text(l10n.chooseFromGalleryOption),
@@ -139,7 +155,8 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   setState(() {
-                    _newPhotoFile = null;
+                    _newPhotoBytes = null;
+                    _newPhotoContentType = null;
                     _removePhoto = true;
                   });
                 },
@@ -173,13 +190,14 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
       label: _labelController.text.trim(),
       age: age,
       gender: _gender,
-      newPhotoFile: _newPhotoFile,
+      newPhotoBytes: _newPhotoBytes,
+      newPhotoContentType: _newPhotoContentType,
       removePhoto: _removePhoto,
     ));
   }
 
   ImageProvider? _previewImage() {
-    if (_newPhotoFile != null) return FileImage(_newPhotoFile!);
+    if (_newPhotoBytes != null) return MemoryImage(_newPhotoBytes!);
     if (!_removePhoto && _hasExistingPhoto) {
       return NetworkImage(widget.initialPhotoUrl!);
     }

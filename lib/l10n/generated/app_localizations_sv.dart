@@ -919,4 +919,110 @@ class AppLocalizationsSv extends AppLocalizations {
   String rainRiskTooltip(int percent) {
     return '$percent% chans för regn';
   }
+
+  @override
+  String get rangeFreeTimeTitle => 'Hitta gemensam tid';
+
+  @override
+  String get rangeLookAhead => 'Tidsintervall';
+
+  @override
+  String get rangeHorizonWeek => '1 vecka';
+
+  @override
+  String get rangeHorizonTwoWeeks => '2 veckor';
+
+  @override
+  String get rangeHorizonMonth => '1 månad';
+
+  @override
+  String get rangeMinimumLabel => 'Vi behöver minst';
+
+  @override
+  String get rangeDurationOneHour => '1 timme';
+
+  @override
+  String get rangeDurationTwoHours => '2 timmar';
+
+  @override
+  String get rangeDurationThreeHours => '3 timmar';
+
+  @override
+  String get rangeDurationFourHours => '4 timmar';
+
+  @override
+  String get rangeSearchButton => 'Sök ledig tid';
+
+  @override
+  String get rangeSearching => 'Söker…';
+
+  @override
+  String get rangeNoFamilyTitle => 'Ingen familj ännu';
+
+  @override
+  String get rangeNoFamilyDetail =>
+      'Gå med i en familj eller skapa en för att söka gemensam ledig tid.';
+
+  @override
+  String get rangeLoadFamilyError => 'Kunde inte ladda familjen';
+
+  @override
+  String rangeWindowsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tidpunkter hittades',
+      one: '1 tidpunkt hittades',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String rangeComputedSummary(int members, int events) {
+    return '$members medlemmar och $events händelser, beräknat i Azure.';
+  }
+
+  @override
+  String get rangeNoWindowsTitle => 'Ingen så lång ledig tid';
+
+  @override
+  String get rangeNoWindowsDetail =>
+      'Det finns ingen så lång lucka under den valda perioden. Prova ett kortare block eller ett längre intervall.';
+
+  @override
+  String get rangeErrorNotSignedIn =>
+      'Du är utloggad. Logga in och försök igen.';
+
+  @override
+  String get rangeErrorUnauthorized =>
+      'Din session har gått ut. Logga ut och in igen.';
+
+  @override
+  String get rangeErrorNotMember => 'Du är inte medlem i den här familjen.';
+
+  @override
+  String get rangeErrorFamilyEmpty =>
+      'Den här familjen har inga medlemmar ännu.';
+
+  @override
+  String get rangeErrorUnreachable =>
+      'Kunde inte nå tjänsten för ledig tid. Kontrollera anslutningen och försök igen — den första förfrågan efter en paus kan vara långsam.';
+
+  @override
+  String get rangeErrorBadResponse => 'Tjänsten returnerade något oväntat.';
+
+  @override
+  String rangeErrorUnknown(String code) {
+    return 'Något gick fel ($code).';
+  }
+
+  @override
+  String get rangeEntryTitle => 'Hitta tid över flera dagar';
+
+  @override
+  String get rangeEntrySubtitle =>
+      'Sök de närmaste två veckorna efter en tid som passar alla';
+
+  @override
+  String get rangeEntryTooltip => 'Sök ett datumintervall';
 }

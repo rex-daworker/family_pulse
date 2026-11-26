@@ -915,4 +915,110 @@ class AppLocalizationsEn extends AppLocalizations {
   String rainRiskTooltip(int percent) {
     return '$percent% chance of rain';
   }
+
+  @override
+  String get rangeFreeTimeTitle => 'Find time together';
+
+  @override
+  String get rangeLookAhead => 'Look ahead';
+
+  @override
+  String get rangeHorizonWeek => '1 week';
+
+  @override
+  String get rangeHorizonTwoWeeks => '2 weeks';
+
+  @override
+  String get rangeHorizonMonth => '1 month';
+
+  @override
+  String get rangeMinimumLabel => 'We need at least';
+
+  @override
+  String get rangeDurationOneHour => '1 hour';
+
+  @override
+  String get rangeDurationTwoHours => '2 hours';
+
+  @override
+  String get rangeDurationThreeHours => '3 hours';
+
+  @override
+  String get rangeDurationFourHours => '4 hours';
+
+  @override
+  String get rangeSearchButton => 'Find free time';
+
+  @override
+  String get rangeSearching => 'Searching…';
+
+  @override
+  String get rangeNoFamilyTitle => 'No family yet';
+
+  @override
+  String get rangeNoFamilyDetail =>
+      'Join or create a family to search for shared free time.';
+
+  @override
+  String get rangeLoadFamilyError => 'Could not load your family';
+
+  @override
+  String rangeWindowsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count windows found',
+      one: '1 window found',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String rangeComputedSummary(int members, int events) {
+    return 'Across $members members and $events events, computed in Azure.';
+  }
+
+  @override
+  String get rangeNoWindowsTitle => 'Nothing that long is free';
+
+  @override
+  String get rangeNoWindowsDetail =>
+      'No window that long in the period you chose. Try a shorter block or a longer horizon.';
+
+  @override
+  String get rangeErrorNotSignedIn =>
+      'You are signed out. Sign in and try again.';
+
+  @override
+  String get rangeErrorUnauthorized =>
+      'Your session expired. Sign out and back in.';
+
+  @override
+  String get rangeErrorNotMember => 'You are not a member of this family.';
+
+  @override
+  String get rangeErrorFamilyEmpty => 'This family has no members yet.';
+
+  @override
+  String get rangeErrorUnreachable =>
+      'Could not reach the free-time service. Check your connection and try again — the first request after a quiet period can be slow.';
+
+  @override
+  String get rangeErrorBadResponse =>
+      'The service returned something unexpected.';
+
+  @override
+  String rangeErrorUnknown(String code) {
+    return 'Something went wrong ($code).';
+  }
+
+  @override
+  String get rangeEntryTitle => 'Find time across several days';
+
+  @override
+  String get rangeEntrySubtitle =>
+      'Search the next two weeks for a window that suits everyone';
+
+  @override
+  String get rangeEntryTooltip => 'Search a date range';
 }

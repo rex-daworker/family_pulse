@@ -919,4 +919,110 @@ class AppLocalizationsFi extends AppLocalizations {
   String rainRiskTooltip(int percent) {
     return '$percent% sadetodennäköisyys';
   }
+
+  @override
+  String get rangeFreeTimeTitle => 'Löydä yhteinen aika';
+
+  @override
+  String get rangeLookAhead => 'Aikaväli';
+
+  @override
+  String get rangeHorizonWeek => '1 viikko';
+
+  @override
+  String get rangeHorizonTwoWeeks => '2 viikkoa';
+
+  @override
+  String get rangeHorizonMonth => '1 kuukausi';
+
+  @override
+  String get rangeMinimumLabel => 'Tarvitsemme vähintään';
+
+  @override
+  String get rangeDurationOneHour => '1 tunti';
+
+  @override
+  String get rangeDurationTwoHours => '2 tuntia';
+
+  @override
+  String get rangeDurationThreeHours => '3 tuntia';
+
+  @override
+  String get rangeDurationFourHours => '4 tuntia';
+
+  @override
+  String get rangeSearchButton => 'Etsi vapaata aikaa';
+
+  @override
+  String get rangeSearching => 'Haetaan…';
+
+  @override
+  String get rangeNoFamilyTitle => 'Ei vielä perhettä';
+
+  @override
+  String get rangeNoFamilyDetail =>
+      'Liity perheeseen tai luo uusi, niin voit etsiä yhteistä vapaa-aikaa.';
+
+  @override
+  String get rangeLoadFamilyError => 'Perheen lataaminen epäonnistui';
+
+  @override
+  String rangeWindowsFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ajankohtaa löytyi',
+      one: '1 ajankohta löytyi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String rangeComputedSummary(int members, int events) {
+    return '$members jäsentä ja $events tapahtumaa, laskettu Azuressa.';
+  }
+
+  @override
+  String get rangeNoWindowsTitle => 'Näin pitkää vapaata ei löytynyt';
+
+  @override
+  String get rangeNoWindowsDetail =>
+      'Valitsemallasi aikavälillä ei ole näin pitkää vapaata. Kokeile lyhyempää jaksoa tai pidempää aikaväliä.';
+
+  @override
+  String get rangeErrorNotSignedIn =>
+      'Olet kirjautunut ulos. Kirjaudu sisään ja yritä uudelleen.';
+
+  @override
+  String get rangeErrorUnauthorized =>
+      'Istuntosi vanheni. Kirjaudu ulos ja takaisin sisään.';
+
+  @override
+  String get rangeErrorNotMember => 'Et ole tämän perheen jäsen.';
+
+  @override
+  String get rangeErrorFamilyEmpty => 'Tässä perheessä ei ole vielä jäseniä.';
+
+  @override
+  String get rangeErrorUnreachable =>
+      'Vapaa-aikapalveluun ei saatu yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen — ensimmäinen haku tauon jälkeen voi olla hidas.';
+
+  @override
+  String get rangeErrorBadResponse =>
+      'Palvelu palautti odottamattoman vastauksen.';
+
+  @override
+  String rangeErrorUnknown(String code) {
+    return 'Jokin meni vikaan ($code).';
+  }
+
+  @override
+  String get rangeEntryTitle => 'Etsi aikaa useamman päivän ajalta';
+
+  @override
+  String get rangeEntrySubtitle =>
+      'Etsi seuraavien kahden viikon ajalta kaikille sopiva hetki';
+
+  @override
+  String get rangeEntryTooltip => 'Hae aikaväliltä';
 }
