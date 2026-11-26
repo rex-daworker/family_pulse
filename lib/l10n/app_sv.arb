@@ -326,5 +326,35 @@
   "rainRiskTooltip": "{percent}% chans för regn",
   "@rainRiskTooltip": {
     "placeholders": { "percent": { "type": "int" } }
-  }
+  },
+
+  "rangeFreeTimeTitle": "Hitta gemensam tid",
+  "rangeLookAhead": "Tidsintervall",
+  "rangeHorizonWeek": "1 vecka",
+  "rangeHorizonTwoWeeks": "2 veckor",
+  "rangeHorizonMonth": "1 m\u00e5nad",
+  "rangeMinimumLabel": "Vi beh\u00f6ver minst",
+  "rangeDurationOneHour": "1 timme",
+  "rangeDurationTwoHours": "2 timmar",
+  "rangeDurationThreeHours": "3 timmar",
+  "rangeDurationFourHours": "4 timmar",
+  "rangeSearchButton": "S\u00f6k ledig tid",
+  "rangeSearching": "S\u00f6ker\u2026",
+  "rangeNoFamilyTitle": "Ingen familj \u00e4nnu",
+  "rangeNoFamilyDetail": "G\u00e5 med i en familj eller skapa en f\u00f6r att s\u00f6ka gemensam ledig tid.",
+  "rangeLoadFamilyError": "Kunde inte ladda familjen",
+  "rangeWindowsFound": "{count, plural, =1{1 tidpunkt hittades} other{{count} tidpunkter hittades}}",
+  "rangeComputedSummary": "{members} medlemmar och {events} h\u00e4ndelser, ber\u00e4knat i Azure.",
+  "rangeNoWindowsTitle": "Ingen s\u00e5 l\u00e5ng ledig tid",
+  "rangeNoWindowsDetail": "Det finns ingen s\u00e5 l\u00e5ng lucka under den valda perioden. Prova ett kortare block eller ett l\u00e4ngre intervall.",
+  "rangeErrorNotSignedIn": "Du \u00e4r utloggad. Logga in och f\u00f6rs\u00f6k igen.",
+  "rangeErrorUnauthorized": "Din session har g\u00e5tt ut. Logga ut och in igen.",
+  "rangeErrorNotMember": "Du \u00e4r inte medlem i den h\u00e4r familjen.",
+  "rangeErrorFamilyEmpty": "Den h\u00e4r familjen har inga medlemmar \u00e4nnu.",
+  "rangeErrorUnreachable": "Kunde inte n\u00e5 tj\u00e4nsten f\u00f6r ledig tid. Kontrollera anslutningen och f\u00f6rs\u00f6k igen \u2014 den f\u00f6rsta f\u00f6rfr\u00e5gan efter en paus kan vara l\u00e5ngsam.",
+  "rangeErrorBadResponse": "Tj\u00e4nsten returnerade n\u00e5got ov\u00e4ntat.",
+  "rangeErrorUnknown": "N\u00e5got gick fel ({code}).",
+  "rangeEntryTitle": "Hitta tid \u00f6ver flera dagar",
+  "rangeEntrySubtitle": "S\u00f6k de n\u00e4rmaste tv\u00e5 veckorna efter en tid som passar alla",
+  "rangeEntryTooltip": "S\u00f6k ett datumintervall"
 }

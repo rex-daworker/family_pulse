@@ -64,7 +64,7 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
           IconButton(
             onPressed: () => context.push('/free-time-range'),
             icon: const Icon(Icons.date_range),
-            tooltip: 'Search a date range',
+            tooltip: l10n.rangeEntryTooltip,
           ),
         ],
       ),
@@ -80,10 +80,8 @@ class _FreeTimeScreenState extends ConsumerState<FreeTimeScreen> {
               clipBehavior: Clip.antiAlias,
               child: ListTile(
                 leading: const Icon(Icons.auto_awesome),
-                title: const Text('Find time across several days'),
-                subtitle: const Text(
-                  'Search the next two weeks for a window that suits everyone',
-                ),
+                title: Text(l10n.rangeEntryTitle),
+                subtitle: Text(l10n.rangeEntrySubtitle),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/free-time-range'),
               ),

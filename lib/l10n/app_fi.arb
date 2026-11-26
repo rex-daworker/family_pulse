@@ -326,5 +326,35 @@
   "rainRiskTooltip": "{percent}% sadetodennäköisyys",
   "@rainRiskTooltip": {
     "placeholders": { "percent": { "type": "int" } }
-  }
+  },
+
+  "rangeFreeTimeTitle": "L\u00f6yd\u00e4 yhteinen aika",
+  "rangeLookAhead": "Aikav\u00e4li",
+  "rangeHorizonWeek": "1 viikko",
+  "rangeHorizonTwoWeeks": "2 viikkoa",
+  "rangeHorizonMonth": "1 kuukausi",
+  "rangeMinimumLabel": "Tarvitsemme v\u00e4hint\u00e4\u00e4n",
+  "rangeDurationOneHour": "1 tunti",
+  "rangeDurationTwoHours": "2 tuntia",
+  "rangeDurationThreeHours": "3 tuntia",
+  "rangeDurationFourHours": "4 tuntia",
+  "rangeSearchButton": "Etsi vapaata aikaa",
+  "rangeSearching": "Haetaan\u2026",
+  "rangeNoFamilyTitle": "Ei viel\u00e4 perhett\u00e4",
+  "rangeNoFamilyDetail": "Liity perheeseen tai luo uusi, niin voit etsi\u00e4 yhteist\u00e4 vapaa-aikaa.",
+  "rangeLoadFamilyError": "Perheen lataaminen ep\u00e4onnistui",
+  "rangeWindowsFound": "{count, plural, =1{1 ajankohta l\u00f6ytyi} other{{count} ajankohtaa l\u00f6ytyi}}",
+  "rangeComputedSummary": "{members} j\u00e4sent\u00e4 ja {events} tapahtumaa, laskettu Azuressa.",
+  "rangeNoWindowsTitle": "N\u00e4in pitk\u00e4\u00e4 vapaata ei l\u00f6ytynyt",
+  "rangeNoWindowsDetail": "Valitsemallasi aikav\u00e4lill\u00e4 ei ole n\u00e4in pitk\u00e4\u00e4 vapaata. Kokeile lyhyemp\u00e4\u00e4 jaksoa tai pidemp\u00e4\u00e4 aikav\u00e4li\u00e4.",
+  "rangeErrorNotSignedIn": "Olet kirjautunut ulos. Kirjaudu sis\u00e4\u00e4n ja yrit\u00e4 uudelleen.",
+  "rangeErrorUnauthorized": "Istuntosi vanheni. Kirjaudu ulos ja takaisin sis\u00e4\u00e4n.",
+  "rangeErrorNotMember": "Et ole t\u00e4m\u00e4n perheen j\u00e4sen.",
+  "rangeErrorFamilyEmpty": "T\u00e4ss\u00e4 perheess\u00e4 ei ole viel\u00e4 j\u00e4seni\u00e4.",
+  "rangeErrorUnreachable": "Vapaa-aikapalveluun ei saatu yhteytt\u00e4. Tarkista verkkoyhteys ja yrit\u00e4 uudelleen \u2014 ensimm\u00e4inen haku tauon j\u00e4lkeen voi olla hidas.",
+  "rangeErrorBadResponse": "Palvelu palautti odottamattoman vastauksen.",
+  "rangeErrorUnknown": "Jokin meni vikaan ({code}).",
+  "rangeEntryTitle": "Etsi aikaa useamman p\u00e4iv\u00e4n ajalta",
+  "rangeEntrySubtitle": "Etsi seuraavien kahden viikon ajalta kaikille sopiva hetki",
+  "rangeEntryTooltip": "Hae aikav\u00e4lilt\u00e4"
 }

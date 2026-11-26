@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/free_time_api.dart';
 
-// The single-day free-time finder answers "is the family free on Saturday?".
+// The single-day free-time finder answers "is the family free on this day".
 // This answers the harder question families actually ask: "when, in the next
 // two weeks, can we all get three hours together?" — which means scanning
 // every day in a range against every member's calendar.
 //
 // That search runs in an Azure Function rather than on the device. See
 // azure-functions/README.md for the reasoning and the security model.
-//
-// Strings here are English-only. The rest of the app is localised through
-// AppLocalizations; this screen was added under deadline and its strings have
-// not been through the ARB/codegen cycle yet. Tracked as a known gap.
 class RangeFreeTimeScreen extends ConsumerStatefulWidget {
   const RangeFreeTimeScreen({super.key});
 
@@ -25,20 +22,27 @@ class RangeFreeTimeScreen extends ConsumerStatefulWidget {
 }
 
 class _RangeFreeTimeScreenState extends ConsumerState<RangeFreeTimeScreen> {
-  static const _horizons = <int, String>{7: '1 week', 14: '2 weeks', 30: '1 month'};
-  static const _durations = <int, String>{
-    60: '1 hour',
-    120: '2 hours',
-    180: '3 hours',
-    240: '4 hours',
-  };
-
   int _days = 14;
   int _minDurationMinutes = 180;
 
   bool _loading = false;
   String? _errorCode;
   FreeTimeRangeResult? _result;
+
+  // Built per-frame rather than held as constants, because the labels are
+  // localized and the locale can change while the screen is open.
+  Map<int, String> _horizons(AppLocalizations l10n) => {
+    7: l10n.rangeHorizonWeek,
+    14: l10n.rangeHorizonTwoWeeks,
+    30: l10n.rangeHorizonMonth,
+  };
+
+  Map<int, String> _durations(AppLocalizations l10n) => {
+    60: l10n.rangeDurationOneHour,
+    120: l10n.rangeDurationTwoHours,
+    180: l10n.rangeDurationThreeHours,
+    240: l10n.rangeDurationFourHours,
+  };
 
   Future<void> _search(String familyId) async {
     setState(() {
@@ -66,49 +70,54 @@ class _RangeFreeTimeScreenState extends ConsumerState<RangeFreeTimeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final familyIdAsync = ref.watch(currentFamilyIdProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Find time together')),
+      appBar: AppBar(title: Text(l10n.rangeFreeTimeTitle)),
       body: familyIdAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _Message(
           icon: Icons.error_outline,
-          title: 'Could not load your family',
+          title: l10n.rangeLoadFamilyError,
           detail: '$error',
         ),
         data: (familyId) {
           if (familyId == null) {
-            return const _Message(
+            return _Message(
               icon: Icons.group_off_outlined,
-              title: 'No family yet',
-              detail: 'Join or create a family to search for shared free time.',
+              title: l10n.rangeNoFamilyTitle,
+              detail: l10n.rangeNoFamilyDetail,
             );
           }
-          return _buildBody(context, familyId);
+          return _buildBody(context, l10n, familyId);
         },
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, String familyId) {
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations l10n,
+    String familyId,
+  ) {
     final theme = Theme.of(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Text('Look ahead', style: theme.textTheme.labelLarge),
+        Text(l10n.rangeLookAhead, style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
         _ChoiceRow(
-          options: _horizons,
+          options: _horizons(l10n),
           selected: _days,
           onSelected: (value) => setState(() => _days = value),
         ),
         const SizedBox(height: 20),
-        Text('We need at least', style: theme.textTheme.labelLarge),
+        Text(l10n.rangeMinimumLabel, style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
         _ChoiceRow(
-          options: _durations,
+          options: _durations(l10n),
           selected: _minDurationMinutes,
           onSelected: (value) => setState(() => _minDurationMinutes = value),
         ),
@@ -122,40 +131,40 @@ class _RangeFreeTimeScreenState extends ConsumerState<RangeFreeTimeScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.search),
-          label: Text(_loading ? 'Searching…' : 'Find free time'),
+          label: Text(_loading ? l10n.rangeSearching : l10n.rangeSearchButton),
         ),
         const SizedBox(height: 24),
         if (_errorCode != null) _ErrorCard(code: _errorCode!),
-        if (_result != null) ..._buildResults(context, _result!),
+        if (_result != null) ..._buildResults(context, l10n, _result!),
       ],
     );
   }
 
-  List<Widget> _buildResults(BuildContext context, FreeTimeRangeResult result) {
+  List<Widget> _buildResults(
+    BuildContext context,
+    AppLocalizations l10n,
+    FreeTimeRangeResult result,
+  ) {
     final theme = Theme.of(context);
 
     if (result.slots.isEmpty) {
       return [
         _Message(
           icon: Icons.event_busy_outlined,
-          title: 'Nothing that long is free',
-          detail:
-              'No window of ${_durations[_minDurationMinutes]} or more in the '
-              'next ${_horizons[_days]!.toLowerCase()}. Try a shorter block or '
-              'a longer horizon.',
+          title: l10n.rangeNoWindowsTitle,
+          detail: l10n.rangeNoWindowsDetail,
         ),
       ];
     }
 
     return [
       Text(
-        '${result.slots.length} ${result.slots.length == 1 ? "window" : "windows"} found',
+        l10n.rangeWindowsFound(result.slots.length),
         style: theme.textTheme.titleMedium,
       ),
       const SizedBox(height: 4),
       Text(
-        'Across ${result.memberCount} members and ${result.eventsScanned} events, '
-        'computed in Azure.',
+        l10n.rangeComputedSummary(result.memberCount, result.eventsScanned),
         style: theme.textTheme.bodySmall,
       ),
       const SizedBox(height: 12),
@@ -200,8 +209,9 @@ class _SlotTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dayFormat = DateFormat('EEEE d MMMM');
-    final timeFormat = DateFormat('HH:mm');
+    final locale = Localizations.localeOf(context).toString();
+    final dayFormat = DateFormat('EEEE d MMMM', locale);
+    final timeFormat = DateFormat.Hm(locale);
 
     final hours = slot.durationMinutes ~/ 60;
     final minutes = slot.durationMinutes % 60;
@@ -231,21 +241,32 @@ class _ErrorCard extends StatelessWidget {
 
   final String code;
 
-  static const _messages = <String, String>{
-    'not_signed_in': 'You are signed out. Sign in and try again.',
-    'unauthorized': 'Your session expired. Sign out and back in.',
-    'not_a_family_member': 'You are not a member of this family.',
-    'family_empty': 'This family has no members yet.',
-    'unreachable':
-        'Could not reach the free-time service. Check your connection and '
-        'try again — the first request after a quiet period can be slow.',
-    'bad_response': 'The service returned something unexpected.',
-  };
+  /// Maps the service's language-neutral error codes onto localized text.
+  /// The codes themselves never reach the user — they exist so the UI can
+  /// decide what to say without parsing an English message.
+  String _message(AppLocalizations l10n) {
+    switch (code) {
+      case 'not_signed_in':
+        return l10n.rangeErrorNotSignedIn;
+      case 'unauthorized':
+        return l10n.rangeErrorUnauthorized;
+      case 'not_a_family_member':
+        return l10n.rangeErrorNotMember;
+      case 'family_empty':
+        return l10n.rangeErrorFamilyEmpty;
+      case 'unreachable':
+        return l10n.rangeErrorUnreachable;
+      case 'bad_response':
+        return l10n.rangeErrorBadResponse;
+      default:
+        return l10n.rangeErrorUnknown(code);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final message = _messages[code] ?? 'Something went wrong ($code).';
 
     return Card(
       color: scheme.errorContainer,
@@ -258,7 +279,7 @@ class _ErrorCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                message,
+                _message(l10n),
                 style: TextStyle(color: scheme.onErrorContainer),
               ),
             ),
@@ -270,7 +291,11 @@ class _ErrorCard extends StatelessWidget {
 }
 
 class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.title, required this.detail});
+  const _Message({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
 
   final IconData icon;
   final String title;
@@ -288,7 +313,11 @@ class _Message extends StatelessWidget {
           const SizedBox(height: 12),
           Text(title, style: theme.textTheme.titleMedium),
           const SizedBox(height: 6),
-          Text(detail, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+          Text(
+            detail,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall,
+          ),
         ],
       ),
     );
