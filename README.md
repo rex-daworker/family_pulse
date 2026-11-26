@@ -439,8 +439,18 @@ on the branch:
 | Stage | What it does | Why it is ordered this way |
 |---|---|---|
 | **1. Test Azure Functions** | `npm install` + `npm test` in `azure-functions/` | 10 unit tests over pure date arithmetic — no Azure, no Firebase, no network. Runs in ~10s, so a broken free-time search never reaches a deploy |
-| **2a. Deploy Azure Functions** | `npm install --omit=dev`, publish to the Function App | Runs in parallel with 2b — the backend and the client deploy independently, and neither should wait on the other |
-| **2b. Build and deploy web** | `flutter analyze`, `flutter build web --release`, publish to Firebase Hosting | Both stages are gated on the tests passing |
+| **2. Build and deploy web** | `flutter analyze`, `flutter build web --release`, publish to Firebase Hosting | Only runs if stage 1 passed |
+
+**The Azure Function is not deployed by this pipeline.** Flex Consumption
+issues no publish profile, so `Azure/functions-action` cannot authenticate the
+way it does on other plans; the supported route is `azure/login` with a service
+principal and OIDC federation, which needs an app registration this tenant does
+not permit without administrator consent. The function therefore ships with a
+manual `func azure functionapp publish`.
+
+That is a real gap and worth naming: the client deploys itself, the backend
+does not, so the two can drift between releases. Closing it is the first item
+of further work.
 
 The Azure Function's base URL is injected at build time rather than hardcoded:
 
@@ -460,9 +470,8 @@ in-flight deploy instead of two runs racing to publish to the same site.
 | Secret | Used by |
 |---|---|
 | `FIREBASE_SERVICE_ACCOUNT_FAMILY_PULSE` | Firebase Hosting deploy. The Azure Function reads the same credential from its own `FIREBASE_SERVICE_ACCOUNT` application setting |
-| `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` | Azure Functions deploy. Obtained with `az functionapp deployment list-publishing-profiles --name familypulse-fn-sznzoj --resource-group familypulse-ne --xml` |
 
-Neither is committed anywhere in this repository.
+It is committed nowhere in this repository.
 
 Before this workflow existed, the live site was whatever someone had last run
 `firebase deploy` against from their laptop. That is precisely the drift

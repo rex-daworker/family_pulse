@@ -52,33 +52,20 @@ jobs:
         working-directory: azure-functions
         run: npm test
 
-  # The function and the web client deploy independently. A change to the
-  # slot algorithm must reach Azure, and a change to the Flutter client must
-  # reach Firebase Hosting; neither should wait on the other. Both are gated
-  # on the same tests.
-  deploy-functions:
-    name: Deploy Azure Functions
-    runs-on: ubuntu-latest
-    needs: test-functions
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-
-      - name: Install production dependencies
-        working-directory: azure-functions
-        # --omit=dev keeps the deployment package to what the function
-        # actually needs at runtime.
-        run: npm install --omit=dev
-
-      - name: Publish to Azure
-        uses: Azure/functions-action@v1
-        with:
-          app-name: familypulse-fn-sznzoj
-          package: azure-functions
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+  # NOTE: the Azure Function is deployed manually, not from here.
+  #
+  # Flex Consumption does not issue publish profiles, so Azure/functions-action
+  # cannot authenticate the way it does for other plans. The supported route is
+  # azure/login with a service principal and OIDC federation, which requires an
+  # app registration this subscription's tenant does not permit without
+  # administrator consent.
+  #
+  # Until that is arranged, the function ships with:
+  #   cd azure-functions && npm install --omit=dev \
+  #     && func azure functionapp publish familypulse-fn-sznzoj --javascript
+  #
+  # This is a known gap, not an oversight: the web client deploys itself, the
+  # backend does not, and the two can therefore drift between releases.
 
   build-and-deploy:
     name: Build and deploy web client
