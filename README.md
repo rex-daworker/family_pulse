@@ -144,6 +144,75 @@ hosting moved to Firebase and the compute layer stayed on Azure as planned.
 
 ---
 
+## Running on the web
+
+The app targets Android and the web from one codebase, but two things behave
+differently in a browser and both were shipped broken before being found.
+
+### Uploads must use `putData()`, not `putFile()`
+
+`firebase_storage`'s `putFile()` takes a `dart:io` `File`, which does not
+exist on web — the web implementation throws
+`UnimplementedError: putFile() is not implemented`. Profile photos therefore
+worked on Android and could never work in a browser.
+
+`StorageService.uploadProfilePhoto()` takes `Uint8List` bytes and calls
+`putData()`, which is implemented on every platform. `image_picker` already
+returns an `XFile` everywhere, so `readAsBytes()` gives one upload path rather
+than a conditional import. Use `MemoryImage` rather than `FileImage` to preview
+a picked image, for the same reason.
+
+### The Storage bucket needs CORS configured
+
+Cloud Storage serves no `Access-Control-Allow-Origin` header by default, so a
+browser refuses to render an image that uploaded successfully. The symptom is
+an upload that reports success and an avatar that stays blank, with
+`blocked by CORS policy` in the console.
+
+This is bucket configuration, not code — no rebuild, no deploy:
+
+```bash
+cat > cors.json <<'EOF'
+[
+  {
+    "origin": [
+      "https://family-pulse-sznzoj.web.app",
+      "https://family-pulse-sznzoj.firebaseapp.com",
+      "http://localhost:5000",
+      "http://localhost:8080"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
+EOF
+gcloud storage buckets update gs://family-pulse-sznzoj.firebasestorage.app \
+  --cors-file=cors.json
+```
+
+Verify with:
+
+```bash
+gcloud storage buckets describe gs://family-pulse-sznzoj.firebasestorage.app \
+  --format="default(cors_config)"
+```
+
+Most guides still show `gsutil cors set`. That works, but `gsutil` is legacy —
+`gcloud storage` is the current tooling.
+
+### Other web differences
+
+- `flutter_local_notifications` has no web implementation. It no-ops on init
+  rather than throwing, so the app starts; scheduling a reminder in a browser
+  is untested.
+- The camera option is hidden on web, where most desktop browsers fall back to
+  a file picker anyway.
+- Flutter web installs a service worker, so a hard reload does not always pick
+  up a new deploy. Use a private window when verifying a release.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
