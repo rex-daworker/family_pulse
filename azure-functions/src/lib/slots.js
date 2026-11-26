@@ -119,13 +119,21 @@ function findFreeSlotsInRange({
   minDurationMinutes = 60,
   stepMinutes = 30,
   maxResults = 10,
+  notBefore = new Date(),
 }) {
   const found = [];
 
   for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
     const midnight = rangeStart.getTime() + dayIndex * MS_PER_DAY;
-    const dayStart = new Date(midnight + dayStartHour * 60 * MS_PER_MINUTE);
     const dayEnd = new Date(midnight + dayEndHour * 60 * MS_PER_MINUTE);
+
+    // Hours that have already passed are not availability. Without this the
+    // search answers "the family was free from 08:00" at nine in the evening,
+    // which is true and useless. Only the current day is ever affected.
+    const dayStart = new Date(
+      Math.max(midnight + dayStartHour * 60 * MS_PER_MINUTE, notBefore.getTime()),
+    );
+    if (dayStart.getTime() >= dayEnd.getTime()) continue;
 
     // Only hand this day the events that could possibly overlap it. Filtering
     // here rather than inside the scan keeps the inner loop cheap when the

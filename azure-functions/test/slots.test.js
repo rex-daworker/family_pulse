@@ -130,3 +130,43 @@ test('maxResults truncates after ranking, not before', () => {
   // Day 0's surviving 2-hour sliver must not outrank the full free days.
   assert.ok(slots.every((slot) => slot.durationMinutes === 14 * 60));
 });
+
+test('hours that have already passed are not offered as free time', () => {
+  // Midday on day 0, searching a day that runs 08:00–22:00.
+  const noon = at(0, 12);
+
+  const slots = findFreeSlotsInRange({
+    events: [],
+    memberIds: ['a'],
+    rangeStart: DAY0,
+    days: 2,
+    dayStartHour: 8,
+    dayEndHour: 22,
+    minDurationMinutes: 60,
+    notBefore: noon,
+  });
+
+  const today = slots.filter((slot) => slot.dayIndex === 0);
+  assert.equal(today.length, 1);
+  assert.equal(today[0].start.getTime(), noon.getTime());
+  assert.equal(today[0].durationMinutes, 10 * 60); // 12:00–22:00, not 08:00
+
+  // Tomorrow is untouched.
+  const tomorrow = slots.filter((slot) => slot.dayIndex === 1);
+  assert.equal(tomorrow[0].durationMinutes, 14 * 60);
+});
+
+test('a day already finished is skipped entirely', () => {
+  const slots = findFreeSlotsInRange({
+    events: [],
+    memberIds: ['a'],
+    rangeStart: DAY0,
+    days: 1,
+    dayStartHour: 8,
+    dayEndHour: 22,
+    minDurationMinutes: 60,
+    notBefore: at(0, 23), // 23:00 — the searchable day ended an hour ago
+  });
+
+  assert.equal(slots.length, 0);
+});
