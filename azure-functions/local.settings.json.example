@@ -1,0 +1,8 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "",
+    "FIREBASE_SERVICE_ACCOUNT": "paste the service account JSON here as ONE line, for local runs only"
+  }
+}
