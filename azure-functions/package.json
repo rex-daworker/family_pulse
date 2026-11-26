@@ -1,0 +1,19 @@
+{
+  "name": "familypulse-functions",
+  "version": "1.0.0",
+  "description": "Azure Functions backend for FamilyPulse — Firebase-authenticated multi-day free-time search.",
+  "private": true,
+  "main": "src/functions/*.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "func start",
+    "test": "node --test test/slots.test.js"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.6.0",
+    "firebase-admin": "^13.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
