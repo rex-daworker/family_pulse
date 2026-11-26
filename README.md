@@ -43,6 +43,99 @@ See [docs/screenshots/web/](docs/screenshots/web/) for capture details.
 
 ---
 
+## Try it without installing anything
+
+The web client is live and needs no build step, emulator or device:
+
+**https://family-pulse-sznzoj.web.app**
+
+A demo family is seeded with three members and fourteen days of overlapping
+work, school and evening commitments, so the free-time search has something
+realistic to work on.
+
+| Member | Email | Password |
+|---|---|---|
+| Anne (reviewer) | `anne@familypulse.demo` | `FamilyPulse2026!` |
+| Mikko | `mikko@familypulse.demo` | `FamilyPulse2026!` |
+| Sofia | `sofia@familypulse.demo` | `FamilyPulse2026!` |
+
+Sign in as any of them, open **Free time**, and tap **Find time across
+several days**. The schedules are deliberately awkward — most days have no
+three-hour window, which is what makes the days that do worth finding.
+
+---
+
+## Architecture
+
+FamilyPulse is a Flutter client on Firebase. One capability — the multi-day
+shared free-time search — runs on Azure instead, and the split is deliberate:
+
+```
+Flutter client  ──────────────►  Firebase Auth      identity
+(web + Android)                  Cloud Firestore    all data
+       │
+       │  POST /api/free-slots
+       │  Authorization: Bearer <Firebase ID token>
+       ▼
+Azure Function  ──────────────►  Cloud Firestore    reads, never writes
+(Node, Norway East)              (via Admin SDK)
+```
+
+**Firebase stays the system of record.** The Azure Function issues no tokens,
+stores no users and owns no data. It verifies the caller's existing Firebase
+ID token, confirms that the token's uid belongs to the family being queried,
+reads the same documents the client already reads, and returns a computed
+answer. Nothing was migrated; Azure supplies compute where Firebase is a poor
+fit.
+
+### Why that one feature moved
+
+The single-day free-time finder stays on the device. It reads one day of
+events and must feel instant.
+
+Searching two weeks is a different shape of problem: substantially more
+documents, the scan repeated per day per member, and — the deciding factor —
+every member of the family would otherwise compute an identical answer on
+their own phone. Moving it server-side makes it one computation, keeps the
+work off low-end devices, and puts the result somewhere it can later be
+cached or scheduled.
+
+### The security consequence of using the Admin SDK
+
+The Admin SDK **bypasses Firestore security rules entirely** — it is trusted
+by definition. The membership guarantee that rules provide for free on the
+client path therefore has to be re-implemented by hand in the function:
+
+```js
+const callerDoc = await db.collection('families').doc(familyId)
+  .collection('users').doc(claims.uid).get();
+if (!callerDoc.exists) return json(403, { error: 'not_a_family_member' });
+```
+
+Without those lines, any authenticated FamilyPulse user could read any
+family's calendar by changing one field in the request body. Full detail in
+[`azure-functions/README.md`](azure-functions/README.md).
+
+### Infrastructure
+
+| | |
+|---|---|
+| Web hosting | Firebase Hosting (`family-pulse-sznzoj.web.app`) |
+| Compute | Azure Functions, Node on Functions v4 |
+| Region | Norway East |
+| Resource group | `familypulse-ne` |
+| Storage | `fpstoresznzoj` — Standard_LRS, public blob access disabled |
+
+Azure Static Web Apps was the original hosting target. The subscription
+carries an **Allowed resource deployment regions** policy permitting only
+`belgiumcentral`, `norwayeast`, `austriaeast`, `switzerlandnorth` and
+`italynorth`; Static Web Apps exists in none of them, and the portal's region
+dropdown gives no warning because it lists where the *service* runs, not where
+*this subscription* may deploy. Azure Functions is available in all five, so
+hosting moved to Firebase and the compute layer stayed on Azure as planned.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -328,3 +421,35 @@ Every push and pull request automatically runs:
    secrets, `CI_NOTIFY_EMAILS` repo variable)
 
 A pull request must pass all checks before it can be merged to `main`.
+
+### Continuous deployment — `.github/workflows/deploy-web.yml`
+
+Every push to `main` or `rex/azure-deployment` deploys the web client. There
+is no manual step and therefore no way for what is live to drift from what is
+on the branch:
+
+| Stage | What it does | Why it is ordered this way |
+|---|---|---|
+| **1. Test Azure Functions** | `npm install` + `npm test` in `azure-functions/` | 8 unit tests over pure date arithmetic — no Azure, no Firebase, no network. Runs in ~10s, so a broken free-time search never reaches a deploy |
+| **2. Build and deploy** | `flutter analyze`, `flutter build web --release`, publish to Firebase Hosting | Only runs if stage 1 passed |
+
+The Azure Function's base URL is injected at build time rather than hardcoded:
+
+```bash
+flutter build web --release \
+  --dart-define=AZURE_FUNCTIONS_BASE_URL=https://familypulse-fn-sznzoj.azurewebsites.net
+```
+
+The same source therefore builds against a local `func start`, a staging
+deployment, or production without editing Dart.
+
+`concurrency` with `cancel-in-progress` means a newer push cancels an
+in-flight deploy instead of two runs racing to publish to the same site.
+
+**Required secret:** `FIREBASE_SERVICE_ACCOUNT_FAMILY_PULSE` — the Firebase
+service account JSON. The Azure Function reads the same credential from its
+own `FIREBASE_SERVICE_ACCOUNT` application setting. It is committed nowhere.
+
+Before this workflow existed, the live site was whatever someone had last run
+`firebase deploy` against from their laptop. That is precisely the drift
+continuous deployment exists to prevent.
