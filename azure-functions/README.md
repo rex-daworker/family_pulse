@@ -131,3 +131,53 @@ resource deployment regions** policy permitting only `belgiumcentral`,
 Web Apps — the original plan for hosting — exists in none of those, which is
 why the web client is hosted on Firebase Hosting instead. Azure Functions is
 available in all five, so the compute layer stayed on Azure as intended.
+
+## Deployment
+
+Deployed from Azure Cloud Shell, which already has `az`, `func` and `node`
+installed — no local toolchain required:
+
+```bash
+git clone --branch rex/azure-deployment --depth 1 \
+  https://github.com/rex-daworker/family_pulse.git ~/fp
+cd ~/fp/azure-functions
+cp local.settings.json.example local.settings.json
+npm install --omit=dev
+func azure functionapp publish familypulse-fn-sznzoj --javascript
+```
+
+`local.settings.json` is gitignored because it is where local secrets go, but
+Core Tools reads the project's language from it — so a fresh clone fails with
+*"Worker runtime cannot be 'None'"* until the file exists. Copying the example
+(or passing `--javascript`) resolves it. The file is only consulted locally;
+the deployed app reads its settings from Azure configuration.
+
+The service account is set once, separately, and never travels with the code:
+
+```bash
+SA=$(python3 -c 'import json,sys;print(json.dumps(json.load(open(sys.argv[1]))))' ./service-account.json)
+az functionapp config appsettings set \
+  --name familypulse-fn-sznzoj --resource-group familypulse-ne \
+  --settings "FIREBASE_SERVICE_ACCOUNT=$SA" -o none
+```
+
+CORS must name the web client's origin explicitly, or the browser blocks the
+request before it is ever sent — and the resulting console error looks like a
+server fault rather than a configuration one:
+
+```bash
+az functionapp cors add --name familypulse-fn-sznzoj \
+  --resource-group familypulse-ne \
+  --allowed-origins https://family-pulse-sznzoj.web.app
+```
+
+Verify the deployment rejects anonymous callers:
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+  -X POST https://familypulse-fn-sznzoj.azurewebsites.net/api/free-slots \
+  -H "Content-Type: application/json" \
+  -d '{"familyId":"x","rangeStartIso":"2026-11-27T00:00:00Z"}'
+```
+
+`HTTP 401` is the expected and correct result.
