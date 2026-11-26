@@ -438,8 +438,9 @@ on the branch:
 
 | Stage | What it does | Why it is ordered this way |
 |---|---|---|
-| **1. Test Azure Functions** | `npm install` + `npm test` in `azure-functions/` | 8 unit tests over pure date arithmetic — no Azure, no Firebase, no network. Runs in ~10s, so a broken free-time search never reaches a deploy |
-| **2. Build and deploy** | `flutter analyze`, `flutter build web --release`, publish to Firebase Hosting | Only runs if stage 1 passed |
+| **1. Test Azure Functions** | `npm install` + `npm test` in `azure-functions/` | 10 unit tests over pure date arithmetic — no Azure, no Firebase, no network. Runs in ~10s, so a broken free-time search never reaches a deploy |
+| **2a. Deploy Azure Functions** | `npm install --omit=dev`, publish to the Function App | Runs in parallel with 2b — the backend and the client deploy independently, and neither should wait on the other |
+| **2b. Build and deploy web** | `flutter analyze`, `flutter build web --release`, publish to Firebase Hosting | Both stages are gated on the tests passing |
 
 The Azure Function's base URL is injected at build time rather than hardcoded:
 
@@ -454,9 +455,14 @@ deployment, or production without editing Dart.
 `concurrency` with `cancel-in-progress` means a newer push cancels an
 in-flight deploy instead of two runs racing to publish to the same site.
 
-**Required secret:** `FIREBASE_SERVICE_ACCOUNT_FAMILY_PULSE` — the Firebase
-service account JSON. The Azure Function reads the same credential from its
-own `FIREBASE_SERVICE_ACCOUNT` application setting. It is committed nowhere.
+**Required secrets:**
+
+| Secret | Used by |
+|---|---|
+| `FIREBASE_SERVICE_ACCOUNT_FAMILY_PULSE` | Firebase Hosting deploy. The Azure Function reads the same credential from its own `FIREBASE_SERVICE_ACCOUNT` application setting |
+| `AZURE_FUNCTIONAPP_PUBLISH_PROFILE` | Azure Functions deploy. Obtained with `az functionapp deployment list-publishing-profiles --name familypulse-fn-sznzoj --resource-group familypulse-ne --xml` |
+
+Neither is committed anywhere in this repository.
 
 Before this workflow existed, the live site was whatever someone had last run
 `firebase deploy` against from their laptop. That is precisely the drift
