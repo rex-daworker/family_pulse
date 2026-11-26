@@ -41,6 +41,14 @@ Firebase Hosting at **https://family-pulse-sznzoj.web.app**.
 
 See [docs/screenshots/web/](docs/screenshots/web/) for capture details.
 
+### Azure and CI/CD
+
+Build evidence for the Azure Functions backend and the deployment pipeline —
+the regional policy that ruled out Static Web Apps, the deployed function,
+the 401 proving token validation runs, the seeded demo family, the CI run
+that caught environment drift, and the green pipeline — is in
+[docs/screenshots/azure/](docs/screenshots/azure/).
+
 ---
 
 ## Try it without installing anything
