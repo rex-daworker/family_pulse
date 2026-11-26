@@ -113,9 +113,17 @@ exhaustively without mocking Firestore.
 |---|---|
 | Resource group | `familypulse-ne` |
 | Region | Norway East |
-| Plan | Flex Consumption |
+| Plan | Linux Consumption (`ASP-familypulsene-6c22`) |
 | Runtime | Node on Functions v4 |
 | Storage | `fpstoresznzoj` (Standard_LRS, public blob access disabled) |
+
+Flex Consumption is Microsoft's current recommendation and is available in
+all five permitted regions. This app was created on Linux Consumption before
+that was established, and Azure does not support converting an existing site
+between the two plans in place — it requires deleting and recreating the
+Function App. That migration was deferred rather than attempted the night
+before submission; Linux Consumption is supported until September 2028 and
+behaves identically for this workload.
 
 Norway East was not a free choice. The subscription carries an **Allowed
 resource deployment regions** policy permitting only `belgiumcentral`,
