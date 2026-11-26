@@ -1,0 +1,86 @@
+# Continuous deployment for the FamilyPulse web client.
+#
+# Every push to a tracked branch builds the Flutter web release and publishes
+# it to Firebase Hosting. There is no manual step: no local `flutter build`,
+# no `firebase deploy` from a laptop, and therefore no way for what is live to
+# drift from what is on the branch.
+#
+# Azure Static Web Apps was the original target. The subscription's "Allowed
+# resource deployment regions" policy permits only five European regions and
+# Static Web Apps exists in none of them, so hosting moved to Firebase while
+# the Azure Functions backend stayed where it is. See azure-functions/README.md.
+
+name: Deploy web
+
+on:
+  push:
+    branches:
+      - main
+      - rex/azure-deployment
+  workflow_dispatch:
+
+concurrency:
+  # A newer push makes an in-flight deploy pointless — cancel it rather than
+  # racing two deploys to the same hosting site.
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FIREBASE_PROJECT_ID: family-pulse-sznzoj
+  AZURE_FUNCTIONS_BASE_URL: https://familypulse-fn-sznzoj.azurewebsites.net
+
+jobs:
+  # The backend's slot algorithm is pure arithmetic with no I/O, so it can be
+  # tested in seconds without Azure, Firebase or a network. Running it as a
+  # gate means a broken free-time search never reaches a deploy.
+  test-functions:
+    name: Test Azure Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: azure-functions
+        run: npm install
+
+      - name: Run unit tests
+        working-directory: azure-functions
+        run: npm test
+
+  build-and-deploy:
+    name: Build and deploy web client
+    runs-on: ubuntu-latest
+    needs: test-functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Build web
+        # The function's base URL is injected at build time rather than
+        # hardcoded, so the same source can be pointed at a local `func start`
+        # or a different deployment without editing Dart.
+        run: |
+          flutter build web --release \
+            --dart-define=AZURE_FUNCTIONS_BASE_URL=${{ env.AZURE_FUNCTIONS_BASE_URL }}
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FAMILY_PULSE }}
+          projectId: ${{ env.FIREBASE_PROJECT_ID }}
+          channelId: live
