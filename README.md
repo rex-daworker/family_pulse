@@ -57,19 +57,16 @@ The web client is live and needs no build step, emulator or device:
 
 **https://family-pulse-sznzoj.web.app**
 
-A demo family is seeded with three members and fourteen days of overlapping
-work, school and evening commitments, so the free-time search has something
-realistic to work on.
+A seeded demo family was available for review during assessment. Ask for
+credentials if you need to try the app.
 
-| Member | Email | Password |
-|---|---|---|
-| Anne (reviewer) | `anne@familypulse.demo` | `FamilyPulse2026!` |
-| Mikko | `mikko@familypulse.demo` | `FamilyPulse2026!` |
-| Sofia | `sofia@familypulse.demo` | `FamilyPulse2026!` |
+That family has three members and fourteen days of overlapping work, school
+and evening commitments, so the free-time search has something realistic to
+work on. Signed in, open **Free time** and tap **Find time across several
+days**. The schedules are deliberately awkward — most days have no three-hour
+window, which is what makes the days that do worth finding.
 
-Sign in as any of them, open **Free time**, and tap **Find time across
-several days**. The schedules are deliberately awkward — most days have no
-three-hour window, which is what makes the days that do worth finding.
+The seed script that creates it is `azure-functions/scripts/seed-demo-family.js`.
 
 ---
 
